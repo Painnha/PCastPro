@@ -1,0 +1,182 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: black;
+    color: white;
+  }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .section {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .section h2 {
+    text-align: center;
+    margin: 0;
+    font-size: 1.5em;
+  }
+
+  .slots {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+
+  .slot {
+    display: flex; /* Sử dụng Flexbox */
+    flex-direction: column; /* Đặt chiều dọc */
+    align-items: center; /* Căn giữa các phần tử */
+    position: relative;
+    width: 100px;
+    height: 140px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 2px solid #fff;
+    overflow: hidden;
+  }
+
+  .lane-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: auto;
+  }
+
+  .player-name {
+    text-align: center;
+    position: absolute;
+    bottom: 5px;
+    color: white;
+
+  }
+
+  /* Hiệu ứng khi ô đang được chọn */
+  .slot.active-ban {
+    border: 3px solid gray; /* Viền màu xám */
+    position: relative;
+    overflow: hidden; /* Đảm bảo hiệu ứng không tràn ra ngoài */
+    z-index: 2;
+    animation: borderGlow 2s linear infinite;
+  }
+
+  .slot.active-ban::before {
+    content: "";
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border: 5px solid transparent;
+    border-image: linear-gradient(
+        to right,
+        transparent,
+        rgb(255, 0, 0),
+        transparent
+      )
+      1;
+    animation: borderRun 2s linear infinite;
+    pointer-events: none;
+    box-shadow: 0 0 0px white, 0 0 0px white; /* Hiệu ứng phát sáng */
+    z-index: 3;
+  }
+
+  /* Hiệu ứng khi ô đã được khóa */
+  .slot.locked {
+    filter: grayscale(100%);
+    animation: none;
+    border-color: white;
+    box-shadow: none;
+  }
+
+  .heroes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .hero {
+    width: 50px;
+    height: 50px;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid white;
+    cursor: pointer;
+  }
+
+  @keyframes glow {
+    0% {
+      box-shadow: 0 0 10px yellow;
+    }
+    50% {
+      box-shadow: 0 0 20px orange;
+    }
+    100% {
+      box-shadow: 0 0 10px yellow;
+    }
+  }
+
+  @keyframes zoomInOut {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes borderGlow {
+    0% {
+        box-shadow: 0 0 5px yellow, 0 0 10px yellow, 0 0 15px yellow, 0 0 20px yellow;
+    }
+    25% {
+        box-shadow: 0 0 5px orange, 0 0 10px orange, 0 0 15px orange, 0 0 20px orange;
+    }
+    50% {
+        box-shadow: 0 0 5px red, 0 0 10px red, 0 0 15px red, 0 0 20px red;
+    }
+    75% {
+        box-shadow: 0 0 5px orange, 0 0 10px orange, 0 0 15px orange, 0 0 20px orange;
+    }
+    100% {
+        box-shadow: 0 0 5px yellow, 0 0 10px yellow, 0 0 15px yellow, 0 0 20px yellow;
+    }
+}
+  @keyframes borderRun {
+    0% {
+      border-image-source: linear-gradient(
+        to right,
+        transparent,
+        white,
+        transparent
+      );
+      transform: translateX(-100%);
+    }
+    100% {
+      border-image-source: linear-gradient(
+        to right,
+        transparent,
+        white,
+        transparent
+      );
+      transform: translateX(100%);
+    }
+  }

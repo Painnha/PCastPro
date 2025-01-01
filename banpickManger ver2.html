@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ban/Pick Manager</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .section {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .section h2 {
+            text-align: center;
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .slots {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .slot {
+            width: 100px;
+            height: 140px;
+            border: 2px solid white;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+        }
+/* Hiệu ứng khi ô đang được chọn */
+.slot.active-ban {
+    border-color: yellow;
+    box-shadow: 0 0 10px yellow;
+    animation: glow 1s infinite;
+}
+
+/* Hiệu ứng khi ô đã được khóa */
+.slot.locked {
+    filter: grayscale(100%);
+    animation: none;
+    border-color: white;
+    box-shadow: none;
+}
+
+
+        .heroes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .hero {
+            width: 50px;
+            height: 50px;
+            background-size: cover;
+            background-position: center;
+            border: 1px solid white;
+            cursor: pointer;
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 10px yellow; }
+            50% { box-shadow: 0 0 20px orange; }
+            100% { box-shadow: 0 0 10px yellow; }
+        }
+
+        @keyframes zoomInOut {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Khu vực Ban -->
+        <div class="section">
+            <h2>Ban</h2>
+            <div class="slots">
+                <div class="slot" id="banA1"></div>
+                <div class="slot" id="banA2"></div>
+                <div class="slot" id="banA3"></div>
+                <div class="slot" id="banA4"></div>
+                <div class="slot" id="banB1"></div>
+                <div class="slot" id="banB2"></div>
+                <div class="slot" id="banB3"></div>
+                <div class="slot" id="banB4"></div>
+            </div>
+        </div>
+
+        <!-- Khu vực Pick -->
+        <div class="section hidden" id="pickSection">
+            <h2>Pick</h2>
+            <div class="slots">
+                <div class="slot" id="pickA1"></div>
+                <div class="slot" id="pickA2"></div>
+                <div class="slot" id="pickA3"></div>
+                <div class="slot" id="pickA4"></div>
+                <div class="slot" id="pickA5"></div>
+                <div class="slot" id="pickB1"></div>
+                <div class="slot" id="pickB2"></div>
+                <div class="slot" id="pickB3"></div>
+                <div class="slot" id="pickB4"></div>
+                <div class="slot" id="pickB5"></div>
+            </div>
+        </div>
+
+        <button id="lockButton" >Khóa Tướng</button>
+
+    </div>
+
+    <!-- Danh sách tướng -->
+    <div class="heroes">
+        <!-- Tướng sẽ được tự động thêm qua JavaScript -->
+    </div>
+
+    <script>
+   let selectedHeroImage = ''; // Khởi tạo biến để lưu hình ảnh hero đã chọn
+
+const heroes = [
+    { name: "Yorn", image: "heroes/Zip.jpg" },
+    { name: "Violet", image: "heroes/Aoi.jpg" },
+    { name: "Tulen", image: "heroes/Airi.jpg" },
+    { name: "Zephys", image: "heroes/Amily.jpg" }
+];
+
+const heroContainer = document.querySelector('.heroes');
+heroes.forEach(hero => {
+    const heroDiv = document.createElement('div');
+    heroDiv.className = 'hero';
+    heroDiv.style.backgroundImage = `url(${hero.image})`;
+    heroDiv.onclick = () => {
+        selectHero(hero.image); // Gọi hàm chọn hero
+        selectedHeroImage = hero.image; // Cập nhật hình ảnh hero đã chọn
+    };
+    heroContainer.appendChild(heroDiv);
+});
+
+function selectHero(image) {
+    // Lấy ô đang được chọn
+    const selectedSlot = document.querySelector('.slot.active-ban');
+    if (selectedSlot && !selectedSlot.classList.contains('locked')) {
+        // Đặt hình tướng vào ô được chọn
+        selectedSlot.style.backgroundImage = `url(${image})`;
+        // Không gỡ bỏ hiệu ứng active-ban, chỉ gỡ sau khi khóa
+        socket.send(JSON.stringify({ slotId: selectedSlot.id, image, type: 'select' }));
+    }
+}
+document.querySelectorAll('.slot').forEach(slot => {
+    slot.addEventListener('click', function () {
+        // Kiểm tra nếu ô đã bị khóa
+        if (!this.classList.contains('locked')) {
+            // Toggle hiệu ứng active-ban
+            this.classList.toggle('active-ban');
+        }
+    });
+});
+
+
+function lockSlot() {
+    const selectedSlot = document.querySelector('.slot.active-ban');
+    if (selectedSlot) {
+        // Thêm lớp locked và xóa lớp active-ban
+        selectedSlot.classList.add('locked');
+        selectedSlot.classList.remove('active-ban');
+        socket.send(JSON.stringify({ slotId: selectedSlot.id, type: 'lock' }));
+    }
+}
+
+
+    // Gán sự kiện cho nút Khóa Tướng
+    document.getElementById('lockButton').onclick = lockSlot;
+
+    // WebSocket
+    const socket = new WebSocket('ws://localhost:8080');
+    </script>
+</body>
+</html>
