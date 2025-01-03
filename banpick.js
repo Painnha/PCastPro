@@ -32,24 +32,44 @@ function updateSlot(data) {
     const slot = document.getElementById(data.slotId);
     if (!slot) return;
 
-    slot.style.backgroundImage = `url(${data.image})`;
-    
+    // Cập nhật hình ảnh vào div heroImage
+    const heroImageDiv = slot.querySelector('.heroImage');
+    if (heroImageDiv) {
+        heroImageDiv.style.position = 'absolute'
+        heroImageDiv.style.backgroundImage = `url(${data.image})`;
+        heroImageDiv.style.backgroundSize = 'cover'; // Đảm bảo hình ảnh được bao phủ
+        heroImageDiv.style.backgroundPosition = 'center'; // Căn giữa hình ảnh
+        heroImageDiv.style.width = '100%'; // Đặt chiều rộng
+        heroImageDiv.style.height = '100%'; // Đặt chiều cao
+    }
 
     if (data.type === 'banActive') {
-        slot.classList.add('ban-active');
+        slot.classList.add('active');
     } else if (data.type === 'lock') {
         slot.classList.add('locked');
-        slot.classList.remove('ban-active');
-        if (slot.classList.contains('pick')) {
-            slot.style.filter = 'none';
+        if (heroImageDiv) {
+            heroImageDiv.classList.add('locked'); // Thêm lớp locked vào heroImage
+            heroImageDiv.style.animation = 'zoomInOut 1s forwards'; // Áp dụng hiệu ứng zoom
+            if (slot.classList.contains('pick')) {
+                slot.style.filter = 'none';
+            }
+            if (slot.classList.contains('ban')) {
+                slot.style.filter = 'grayscale(100%)';
+            }
         }
+        slot.classList.remove('active');
+    
         // Không ẩn hình ảnh đè lên khi khóa
         const overlay = slot.querySelector('.active-overlay');
         if (overlay) overlay.style.display = 'block'; // Giữ hình ảnh đè lên hiển thị
     } else if (data.type === 'select') {
         slot.classList.remove('locked');
-        if (!slot.classList.contains('ban-active')) {
-            slot.classList.add('ban-active');
+        if (heroImageDiv) {
+            heroImageDiv.classList.remove('locked'); // Xóa lớp locked khỏi heroImage
+            heroImageDiv.style.animation = ''; // Xóa hiệu ứng zoom
+        }
+        if (!slot.classList.contains('active')) {
+            slot.classList.add('active');
         }
 
         // Hiển thị hình ảnh đè lên khi chọn

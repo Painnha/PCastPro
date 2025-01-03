@@ -24,8 +24,7 @@ body {
 }
 
 .lane-logo {
-    top: 50%;
-    left: 50%;
+
     width: 50px;
     height: auto;
   }
@@ -44,10 +43,11 @@ body {
     height: 112px;
 }
 .pick {
-    width: 170px;
-    height: 246px;
+    width: 170px; /* Kích thước cố định cho ô pick */
+    height: 246px; /* Kích thước cố định cho ô pick */
+    transition: none; /* Không có hiệu ứng chuyển tiếp khi thay đổi trạng thái */
+    position: relative; /* Để giữ vị trí cố định */
 }
-
 .pick-list {
     display: flex;
     gap: 0px; 
@@ -57,11 +57,7 @@ body {
     gap: 20px;
     position: relative;
 }
-
-
-
-
-.ban-active {
+.active {
     border: 3px solid gray;
     position: relative;
     top: 0;
@@ -69,10 +65,12 @@ body {
     overflow: hidden;
     z-index: 3;
     animation: borderGlow 2s linear infinite;
+    align-items: center; /* Căn giữa các phần tử */
+    justify-content: center;
 
 }
 
-.ban-active::before {
+.active::before {
     content: "";
     position: absolute;
     top: -3px;
@@ -90,6 +88,9 @@ body {
     pointer-events: none;
     z-index: 3;
 }
+.heroheroImage {
+    position: absolute;
+}
 
 @keyframes glow {
     0% { box-shadow: 0 0 10px yellow; }
@@ -97,10 +98,7 @@ body {
     100% { box-shadow: 0 0 10px yellow; }
 }
 
-.locked {
-    animation: zoomInOut 1s forwards;
-    filter: grayscale(100%);
-}
+
 
 @keyframes zoomInOut {
     0% { transform: scale(1); }
@@ -160,18 +158,3 @@ body {
 }
 
 
-.pick {
-    width: 170px; /* Kích thước cố định cho ô pick */
-    height: 246px; /* Kích thước cố định cho ô pick */
-    transition: none; /* Không có hiệu ứng chuyển tiếp khi thay đổi trạng thái */
-    position: relative; /* Để giữ vị trí cố định */
-}
-
-/* Đảm bảo rằng các hiệu ứng không làm thay đổi kích thước */
-.ban-active .pick{
-    width: 170px; /* Đảm bảo kích thước không thay đổi */
-    height: 246px; /* Đảm bảo kích thước không thay đổi */
-    box-sizing: border-box; /* Đảm bảo padding và border không làm thay đổi kích thước */
-}
-
-    
