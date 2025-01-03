@@ -32,14 +32,21 @@ body {
     flex-wrap: wrap;
     justify-content: space-around;
   }
+  .ban {
+    width: 50px;
+    height: 82px;
+}
+
+.pick {
+  width: 100px; /* Kích thước cố định cho ô pick */
+  height: 140px; /* Kích thước cố định cho ô pick */
+}
 
   .slot {
     display: flex; /* Sử dụng Flexbox */
     flex-direction: column; /* Đặt chiều dọc */
     align-items: center; /* Căn giữa các phần tử */
     position: relative;
-    width: 100px;
-    height: 140px;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -55,13 +62,21 @@ body {
     width: 30px;
     height: auto;
   }
+  @font-face {
+    font-family: 'SVNOMNY'; /* Tên font chữ của bạn */
+    src: url('font/SVNOMNYBLACK.OTF') format('opentype'); /* Đường dẫn đến file font */
+    font-weight: normal;
+    font-style: normal;
+}
 
   .player-name {
+    font-family: 'SVNOMNY'; /* Sử dụng font chữ tùy chỉnh */
+    font-size: 15px; /* Kích thước font chữ */
+    color: #ffffff; /* Màu chữ */
     text-align: center;
     position: absolute;
     bottom: 5px;
-    color: white;
-
+    text-transform: uppercase;
   }
 
   /* Hiệu ứng khi ô đang được chọn */
@@ -105,9 +120,10 @@ body {
   .heroes {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 30px;
     justify-content: center;
     margin-top: 20px;
+    position: relative;
   }
 
   .hero {
@@ -118,6 +134,20 @@ body {
     border: 1px solid white;
     cursor: pointer;
   }
+  .heroName {
+    top: 50px;
+    position: relative;
+    color: white;
+  }
+
+  #countdown {
+    font-family: 'SVNOMNY'; /* Sử dụng font chữ tùy chỉnh */
+    font-size: 50px; /* Kích thước font chữ */
+    color: #ffffff; /* Màu chữ */
+    text-align: center;
+    bottom: 5px;
+    text-transform: uppercase;
+}
 
   @keyframes glow {
     0% {

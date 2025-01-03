@@ -23,9 +23,40 @@ function handleData(data) {
     if (data.type === 'playSound') {
         const lockSound = document.getElementById("lockSound");
         lockSound.play(); // Phát âm thanh
+    } 
+    if (data.type === 'updateNames') {
+        updatePlayerNames(data.names); // Cập nhật tên tuyển thủ
     } else {
-        updateSlot(data); // Cập nhật slot
+        updateSlot(data)
     }
+
+     if (data.countdown === 'restartCountdown') {
+        startCountdown(); // Bắt đầu đếm ngược
+    } 
+
+
+        
+
+}
+// Đếm ngược
+let countdown; // Biến để lưu ID của bộ đếm thời gian
+let timeLeft = 60; // Thời gian bắt đầu là 60 giây
+const countdownDisplay = document.getElementById("countdown");
+
+function startCountdown() {
+  clearInterval(countdown); // Dừng bất kỳ bộ đếm nào đang chạy
+  timeLeft = 60;
+  countdownDisplay.textContent = timeLeft; // Hiển thị thời gian ban đầu
+
+  countdown = setInterval(() => {
+    timeLeft--; // Giảm thời gian
+    countdownDisplay.textContent = timeLeft; // Cập nhật hiển thị
+
+    if (timeLeft <= 0) {
+      clearInterval(countdown); // Dừng đếm ngược khi đến 0
+     
+    }
+  }, 1000); // Cập nhật mỗi giây
 }
 
 function updateSlot(data) {
