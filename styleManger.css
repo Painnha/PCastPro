@@ -9,32 +9,40 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
-    padding: 20px;
+    gap: 10px;
+
+  }
+  .section-banpick {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 120px;
+    justify-content: center;
   }
 
   .section {
-    width: 100%;
-    max-width: 1200px;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    align-items: center;
   }
 
-  .section h2 {
+  /* .section-banpick h2 {
     text-align: center;
     margin: 0;
     font-size: 1.5em;
-  }
+  } */
 
   .slots {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-around;
+    gap: 10px;
+   
   }
   .ban {
-    width: 50px;
-    height: 82px;
+    width: 60px;
+    height: 90px;
 }
 
 .pick {
@@ -116,30 +124,68 @@ body {
     border-color: white;
     box-shadow: none;
   }
+  .section-heroes {
+    width: 100%;
+  }
 
   .heroes {
     display: flex;
-    flex-wrap: wrap;
-    gap: 30px;
+   flex-direction: column;
     justify-content: center;
     margin-top: 20px;
     position: relative;
+    border: 2px solid #fff;
+    padding: 5px;
   }
 
   .hero {
-    width: 50px;
-    height: 50px;
+    width: 100px;
+    height: 100px;
+    text-align: center;
     background-size: cover;
     background-position: center;
     border: 1px solid white;
     cursor: pointer;
   }
   .heroName {
-    top: 50px;
+    margin-top: 110px;
     position: relative;
     color: white;
   }
-
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 35px;
+    max-width: 1400px;
+    width: 100%;
+  }
+  .menuHero {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .search-bar {
+    flex: 1;
+    padding: 8px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .hero-options {
+    display: flex;
+    gap: 10px;
+  }
+  .hero-option {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+  }
+  .hero-option:hover {
+    background-color: #0056b3;
+  }
   #countdown {
     font-family: 'SVNOMNY'; /* Sử dụng font chữ tùy chỉnh */
     font-size: 50px; /* Kích thước font chữ */
@@ -147,6 +193,41 @@ body {
     text-align: center;
     bottom: 5px;
     text-transform: uppercase;
+}
+.section-button{
+  display: flex;
+  align-items: start;
+  width: 100%;
+  justify-content: space-between;
+  
+
+}
+.section-editName {
+  display: flex;
+  border: 1px solid #ccc;
+  padding: 20px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+#lockButton, #startButton, #swapButton, #editNameButton {
+  width: 200px;
+  height: 80px;
+  font-size: large;
+  font-family: 'SVNOMNY';
+  border: 3px solid #ccc;
+}
+#lockButton{
+  background-color: red;
+}
+#startButton{
+  background-color: aqua;
+}
+#nameInput {
+  width: 600px;
+  height: 50px;
+  font-size: medium;
+  font-family: 'SVNOMNY';
 }
 
   @keyframes glow {
@@ -210,3 +291,5 @@ body {
       transform: translateX(100%);
     }
   }
+
+

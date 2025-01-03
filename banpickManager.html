@@ -9,83 +9,108 @@
   <body>
     <div class="container">
       <!-- Khu vực Ban -->
-      <div class="section">
-        
-        <h2>Ban</h2>
+       <div class="section-banpick">
+      <div class="section" >
+        <h2>Team xanh</h2>
         <div class="slots">
           <div class="slot ban" id="banA1"></div>
           <div class="slot ban" id="banA2"></div>
           <div class="slot ban" id="banA3"></div>
           <div class="slot ban" id="banA4"></div>
-          <div class="slot ban" id="banB1"></div>
-          <div class="slot ban" id="banB2"></div>
-          <div class="slot ban" id="banB3"></div>
-          <div class="slot ban" id="banB4"></div>
         </div>
-      </div>
-
-      <!-- Khu vực Pick -->
-      <div class="section hidden" id="pickSection">
-        <h2>Pick</h2>
         <div class="slots">
-          <div class="slot pick" id="pickA1">
-            <img src="logo/Top.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 1</div>
+
+            <div class="slot pick" id="pickA1">
+              <img src="logo/Top.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 1</div>
+            </div>
+            <div class="slot pick" id="pickA2">
+              <img src="logo/rung.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 2</div>
+            </div>
+            <div class="slot pick" id="pickA3">
+              <img src="logo/Mid.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 3</div>
+            </div>
+            <div class="slot pick" id="pickA4">
+              <img src="logo/ad.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 4</div>
+            </div>
+            <div class="slot pick" id="pickA5">
+              <img src="logo/support.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 5</div>
+            </div>
           </div>
-          <div class="slot pick" id="pickA2">
-            <img src="logo/rung.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 2</div>
+        </div>
+        <div id="countdown">60</div>
+        <div class="section" >
+          <h2>Team đỏ</h2>
+          <div class="slots"> 
+            <div class="slot ban" id="banB1"></div>
+            <div class="slot ban" id="banB2"></div>
+            <div class="slot ban" id="banB3"></div>
+            <div class="slot ban" id="banB4"></div>
           </div>
-          <div class="slot pick" id="pickA3">
-            <img src="logo/Mid.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 3</div>
-          </div>
-          <div class="slot pick" id="pickA4">
-            <img src="logo/ad.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 4</div>
-          </div>
-          <div class="slot pick" id="pickA5">
-            <img src="logo/support.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 5</div>
-          </div>
-          <div class="slot pick" id="pickB1">
-            <img src="logo/support.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 6</div>
-          </div>
-          <div class="slot pick" id="pickB2">
-            <img src="logo/ad.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 7</div>
-          </div>
-          <div class="slot pick" id="pickB3">
-            <img src="logo/Mid.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 8</div>
-          </div>
-          <div class="slot pick" id="pickB4">
-            <img src="logo/rung.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 9</div>
-          </div>
-          <div class="slot pick" id="pickB5">
-            <img src="logo/Top.svg" alt="Logo" class="lane-logo">
-            <div class="player-name">Tên Tuyển Thủ 10</div>
+
+          <div class="slots">
+            <div class="slot pick" id="pickB1">
+              <img src="logo/support.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 6</div>
+            </div>
+            <div class="slot pick" id="pickB2">
+              <img src="logo/ad.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 7</div>
+            </div>
+            <div class="slot pick" id="pickB3">
+              <img src="logo/Mid.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 8</div>
+            </div>
+            <div class="slot pick" id="pickB4">
+              <img src="logo/rung.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 9</div>
+            </div>
+            <div class="slot pick" id="pickB5">
+              <img src="logo/Top.svg" alt="Logo" class="lane-logo">
+              <div class="player-name">Tên Tuyển Thủ 10</div>
+            </div>
           </div>
         </div>
       </div>
-      <audio id="lockSound" src="effect.mp3"></audio>
-      <div id="countdown">60</div>
-      <button id="lockButton">Khóa Tướng</button>
-      <button id="startButton">Bắt đầu</button>
-      
+      <div class="section-button">
+        <button id="startButton">Bắt đầu</button>
+        <button id="lockButton">Khóa Tướng</button>
+        <button id="swapButton">Đổi Tướng</button>
+      </div>
+        <audio id="lockSound" src="effect.mp3"></audio>
 
-    <!-- Danh sách tướng -->
-    <div class="heroes"></div>
-    <div>
+        
+
+    <div class="heroes">
+      <div class="menuHero">
+        <input type="text" placeholder="Tìm kiếm tướng" class="search-bar">
+        <div class="hero-options">
+          <button class="hero-option">Đấu Sĩ</button>
+          <button class="hero-option">Đỡ Đòn</button>
+          <button class="hero-option">Pháp Sư</button>
+          <button class="hero-option">Sát Thủ</button>
+          <button class="hero-option">Xạ Thủ</button>
+        </div>
+      </div>
+     
+      <div class="hero-grid"></div>
+    </div>
+
+    <div >
       <h3>Chỉnh sửa tên tuyển thủ</h3>
-      <div>
-        <input type="text" id="nameInput" placeholder="" />
-        <button id="editNameButton" data-index="0">Chỉnh sửa</button>
+      <div class="section-editName">
+          <textarea id="nameInput" placeholder="Tuyển thủ 1,Tuyển thủ 2,..."></textarea>
+          <button id="editNameButton" data-index="0">Chỉnh sửa</button>
+        </div>
       </div>
     </div>
-  </div>
+
+     
+     
     <script src="banpickManager.js"></script>
   </body>
 </html>

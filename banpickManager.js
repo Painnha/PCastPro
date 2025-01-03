@@ -118,7 +118,7 @@ const heroes = [
   { name: "Zuka", image: "heroes/Zuka.jpg" },
 ];
 
-const heroContainer = document.querySelector(".heroes");
+const heroContainer = document.querySelector(".hero-grid");
 heroes.forEach((hero) => {
   const heroDiv = document.createElement("div");
   heroDiv.className = "hero";
@@ -161,6 +161,7 @@ document.getElementById("startButton").onclick = function () {
   currentIndex = 0; // Reset chỉ số
   highlightNextSlot(); // Bắt đầu nhấp nháy ô đầu tiên
   startCountdown();
+  this.disabled = true;
   // Gửi tín hiệu bắt đầu qua WebSocket
   const data = {
     countdown: "restartCountdown",
@@ -229,7 +230,7 @@ function selectHero(image) {
 }
 
 function lockSlot() {
-  startCountdown();
+ 
   const selectedSlots = document.querySelectorAll(".slot.active-ban");
   let allFilled = true;
 
@@ -245,6 +246,7 @@ function lockSlot() {
   }
 
   if (selectedSlots.length > 0) {
+    startCountdown();
     // Phát âm thanh khi khóa tướng
     const lockSound = document.getElementById("lockSound");
     lockSound.play(); // Phát âm thanh
