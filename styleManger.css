@@ -95,6 +95,13 @@ body {
     z-index: 2;
     animation: borderGlow 2s linear infinite;
   }
+   .slot.selectedswap.locked {
+    border: 3px solid rgb(179, 255, 0); /* Viền màu xám */
+    position: relative;
+    overflow: hidden; /* Đảm bảo hiệu ứng không tràn ra ngoài */
+    z-index: 5;
+    animation: borderGlow 2s linear infinite;
+   }
 
   .slot.active-ban::before {
     content: "";
@@ -193,9 +200,6 @@ body {
   display: flex;
   align-items: start;
   width: 100%;
-  justify-content: space-between;
-  
-
 }
 .section-editName {
   display: flex;
@@ -214,6 +218,7 @@ body {
 }
 #lockButton{
   background-color: red;
+  margin-left: 450px;
 }
 #startButton{
   background-color: aqua;

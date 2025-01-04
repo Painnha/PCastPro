@@ -399,3 +399,73 @@ editNameButton.onclick = function () {
   };
   socket.send(JSON.stringify(dataToSend)); // Gửi dữ liệu tên qua WebSocket
 };
+
+let firstSelectedSlot = null;
+let secondSelectedSlot = null;
+
+function enableSwapFunctionality() {
+  const slots = document.querySelectorAll(".slot");
+  slots.forEach(slot => {
+    slot.addEventListener("click", handleSlotSelection);
+  });
+}
+
+function handleSlotSelection(event) {
+  const selectedSlot = event.target;
+
+  if (!firstSelectedSlot) {
+    firstSelectedSlot = selectedSlot;
+    selectedSlot.classList.add("selectedswap");
+  } else if (selectedSlot === firstSelectedSlot) {
+    // Double click on the first selected slot to reset
+    firstSelectedSlot.classList.remove("selectedswap");
+    firstSelectedSlot = null;
+  } else if (!secondSelectedSlot) {
+    secondSelectedSlot = selectedSlot;
+    swapHeroes();
+  }
+}
+
+function swapHeroes() {
+  if (firstSelectedSlot && secondSelectedSlot) {
+    const tempImage = firstSelectedSlot.style.backgroundImage;
+    firstSelectedSlot.style.backgroundImage = secondSelectedSlot.style.backgroundImage;
+    secondSelectedSlot.style.backgroundImage = tempImage;
+
+    // Extract the image URLs and send them
+    const firstImageUrl = extractImageUrl(firstSelectedSlot.style.backgroundImage);
+    const secondImageUrl = extractImageUrl(secondSelectedSlot.style.backgroundImage);
+
+    sendSwapUpdate(firstSelectedSlot.id, firstImageUrl, secondSelectedSlot.id, secondImageUrl);
+
+    // Reset selection
+    firstSelectedSlot.classList.remove("selectedswap");
+    firstSelectedSlot = null;
+    secondSelectedSlot = null;
+  }
+}
+
+function sendSwapUpdate(firstSlotId, firstImage, secondSlotId, secondImage) {
+  const swapData = {
+    type: "swapHeroes",
+    swaps: [
+      { slotId: firstSlotId, image: firstImage },
+      { slotId: secondSlotId, image: secondImage }
+    ]
+  };
+  socket.send(JSON.stringify(swapData));
+}
+
+
+// Kích hoạt chức năng đổi tướng khi ô PickB5 bị khóa
+document.getElementById("lockButton").addEventListener("click", function() {
+  const pickB5 = document.getElementById("pickB5");
+  if (pickB5.classList.contains("locked")) {
+    enableSwapFunctionality();
+  }
+});
+
+function extractImageUrl(urlStyle) {
+  // This regex extracts the URL from the `url("...")` format
+  return urlStyle.replace(/url\(["']?(.*?)["']?\)/, "$1");
+}

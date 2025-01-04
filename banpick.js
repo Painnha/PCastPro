@@ -10,34 +10,47 @@ socket.onmessage = (event) => {
     
     if (event.data instanceof Blob) {
         event.data.text().then((text) => {
+            console.log('Parsed Blob data:', text);
             const data = JSON.parse(text);
             handleData(data);
         }).catch((err) => console.error('Error parsing Blob:', err));
     } else {
+        console.log('Received JSON data:', event.data);
         const data = JSON.parse(event.data);
         handleData(data);
     }
 };
 
+socket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+};
+
+socket.onclose = () => {
+    console.log('WebSocket connection closed');
+};
+
 function handleData(data) {
+    console.log('Handling data:', data);
     if (data.type === 'playSound') {
         const lockSound = document.getElementById("lockSound");
         lockSound.play(); // Phát âm thanh
-    } 
-    if (data.type === 'updateNames') {
+    } else if (data.type === 'updateNames') {
         updatePlayerNames(data.names); // Cập nhật tên tuyển thủ
-    } else {
-        updateSlot(data)
-    }
+    } else if (data.type === 'swapHeroes') {
+        console.log('Processing swapHeroes data:', data);
+        data.swaps.forEach(swap => {
+            console.log('Updating slot:', swap.slotId, 'with image:', swap.image);
+            updateSwapImage(swap.slotId, swap.image);
+        });
+    } else {updateSlot(data);}
+    
+
 
      if (data.countdown === 'restartCountdown') {
         startCountdown(); // Bắt đầu đếm ngược
-    } 
-
-
-        
-
+    }
 }
+
 // Đếm ngược
 let countdown; // Biến để lưu ID của bộ đếm thời gian
 let timeLeft = 60; // Thời gian bắt đầu là 60 giây
@@ -124,3 +137,21 @@ function updateSlot(data) {
         }
     }
 }
+function updateSwapImage(slotId, newImage) {
+    console.log("Trying to find slot with ID:", slotId);
+    const slot = document.getElementById(slotId);
+    if (!slot) {
+        console.error("Slot not found:", slotId);
+        return;
+    }
+
+    console.log("Found slot, updating image...");
+    const heroImageDiv = slot.querySelector('.heroImage');
+    if (heroImageDiv) {
+        heroImageDiv.style.backgroundImage = `url(${newImage})`;
+    } else {
+        console.error("Hero image div not found in slot:", slotId);
+    }
+}
+
+
