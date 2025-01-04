@@ -30,7 +30,7 @@ body {
   }
   @font-face {
     font-family: 'SVNOMNY'; /* Tên font chữ của bạn */
-    src: url('font/SVNOMNYBLACK.OTF') format('opentype'); /* Đường dẫn đến file font */
+    src: url('../../shared/font/SVNOMNYBLACK.OTF') format('opentype'); /* Đường dẫn đến file font */
     font-weight: normal;
     font-style: normal;
 }

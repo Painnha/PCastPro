@@ -80,7 +80,7 @@ function updateSlot(data) {
     const heroImageDiv = slot.querySelector('.heroImage');
     if (heroImageDiv) {
         heroImageDiv.style.position = 'absolute'
-        heroImageDiv.style.backgroundImage = `url(${data.image})`;
+        heroImageDiv.style.backgroundImage = `url(../frontend/${data.image})`;
         heroImageDiv.style.backgroundSize = 'cover'; // Đảm bảo hình ảnh được bao phủ
         heroImageDiv.style.backgroundPosition = 'center'; // Căn giữa hình ảnh
         heroImageDiv.style.width = '100%'; // Đặt chiều rộng
@@ -144,7 +144,7 @@ function updateSwapImage(slotId, newImage) {
     console.log("Found slot, updating image...");
     const heroImageDiv = slot.querySelector('.heroImage');
     if (heroImageDiv) {
-        heroImageDiv.style.backgroundImage = `url(${newImage})`;
+        heroImageDiv.style.backgroundImage = `url(../frontend/${newImage})`;
     } else {
         console.error("Hero image div not found in slot:", slotId);
     }

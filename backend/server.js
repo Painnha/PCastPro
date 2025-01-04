@@ -7,7 +7,6 @@ wss.on('connection', (ws) => {
     console.log('Client connected');
     ws.on('message', (message) => {
         console.log('Received:', message);
-        // Phát dữ liệu đến tất cả client đang kết nối
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(message);
