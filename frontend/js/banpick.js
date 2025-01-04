@@ -50,7 +50,25 @@ function handleData(data) {
         startCountdown(); // Bắt đầu đếm ngược
     }
 }
+// Hàm cập nhật tên tuyển thủ
+function updatePlayerNames(names) {
+    console.log(names);
 
+    // Lấy tất cả các ô slot có id bắt đầu bằng "pick"
+    const pickSlots = document.querySelectorAll(".slot[id^='pick']");
+    console.log("Total slots to update:", pickSlots.length);
+
+    pickSlots.forEach((slot, index) => {
+        const playerNameElement = slot.querySelector(".player-name"); // Lấy phần tử player-name
+        if (playerNameElement) {
+            // Xác định nhóm dựa trên ID của slot
+            const isTeamB = slot.id.includes('B');
+            const nameIndex = isTeamB ? 5 + index : index; // Nhóm B bắt đầu từ index 5 trong mảng names
+            // Gán giá trị tên vào phần tử player-name
+            playerNameElement.textContent = names[nameIndex] || "Trống"; // Cập nhật tên hoặc ghi "Trống"
+        }
+    });
+}
 // Đếm ngược
 let countdown; // Biến để lưu ID của bộ đếm thời gian
 let timeLeft = 60; // Thời gian bắt đầu là 60 giây

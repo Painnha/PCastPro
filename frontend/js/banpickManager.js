@@ -381,19 +381,15 @@ editNameButton.onclick = function () {
       if (index < names.length) {
         playerNameElement.textContent = names[index] || "Trống"; // Cập nhật tên hoặc ghi "Trống"
       } else {
-        playerNameElement.textContent = "Trống"; // Nếu không đủ tên, ghi "Trống"
+        playerNameElement.textContent = "Trống"; 
       }
     }
   });
-
-  
-
-  // Gửi tên qua WebSocket
-  const dataToSend = {
+  const data = {
     type: "updateNames",
     names: names,
   };
-  socket.send(JSON.stringify(dataToSend)); // Gửi dữ liệu tên qua WebSocket
+  socket.send(JSON.stringify(data)); 
 };
 
 let firstSelectedSlot = null;
@@ -465,3 +461,6 @@ function extractImageUrl(urlStyle) {
   // This regex extracts the URL from the `url("...")` format
   return urlStyle.replace(/url\(["']?(.*?)["']?\)/, "$1");
 }
+
+
+

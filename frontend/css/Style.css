@@ -13,7 +13,7 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    border: 3px solid white;
+    border: 3px solid gray;
     background-color: #444141;
     display: flex; /* Sử dụng Flexbox */
     flex-direction: column; /* Đặt chiều dọc */
@@ -56,6 +56,7 @@ body {
     height: 246px; /* Kích thước cố định cho ô pick */
     transition: none; /* Không có hiệu ứng chuyển tiếp khi thay đổi trạng thái */
     position: relative; /* Để giữ vị trí cố định */
+    margin: -3px; /* Đè lên nhau */
 }
 .pick-list {
     display: flex;
@@ -126,19 +127,19 @@ body {
 
 @keyframes borderGlow {
     0% {
-        box-shadow: 0 0 5px yellow, 0 0 10px yellow, 0 0 15px yellow, 0 0 20px yellow;
+        box-shadow: inset 0 0 5px yellow, inset 0 0 10px yellow, inset 0 0 15px yellow, inset 0 0 20px yellow;
     }
     25% {
-        box-shadow: 0 0 5px orange, 0 0 10px orange, 0 0 15px orange, 0 0 20px orange;
+        box-shadow: inset 0 0 5px orange, inset 0 0 10px orange, inset 0 0 15px orange, inset 0 0 20px orange;
     }
     50% {
-        box-shadow: 0 0 5px red, 0 0 10px red, 0 0 15px red, 0 0 20px red;
+        box-shadow: inset 0 0 5px red, inset 0 0 10px red, inset 0 0 15px red, inset 0 0 20px red;
     }
     75% {
-        box-shadow: 0 0 5px orange, 0 0 10px orange, 0 0 15px orange, 0 0 20px orange;
+        box-shadow: inset 0 0 5px orange, inset 0 0 10px orange, inset 0 0 15px orange, inset 0 0 20px orange;
     }
     100% {
-        box-shadow: 0 0 5px yellow, 0 0 10px yellow, 0 0 15px yellow, 0 0 20px yellow;
+        box-shadow: inset 0 0 5px yellow, inset 0 0 10px yellow, inset 0 0 15px yellow, inset 0 0 20px yellow;
     }
 }
 
