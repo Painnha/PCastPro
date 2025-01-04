@@ -4,6 +4,7 @@ let selectedHeroImage = ""; // Khởi tạo biến để lưu hình ảnh hero �
 const heroes = [
   { name: "Airi", image: "heroes/Airi.jpg" },
   { name: "Aleister", image: "heroes/Aleister.jpg" },
+  { name: "Alice", image: "heroes/Alice.jpg" },
   { name: "Allain", image: "heroes/Allain.jpg" },
   { name: "Amily", image: "heroes/Amily.jpg" },
   { name: "Annette", image: "heroes/Annette.jpg" },
@@ -18,16 +19,21 @@ const heroes = [
   { name: "Baldum", image: "heroes/Baldum.jpg" },
   { name: "Bijan", image: "heroes/Bijan.jpg" },
   { name: "Bonnie", image: "heroes/Bonnie.jpg" },
+  { name: "Biron", image: "heroes/Biron.jpg" },
+  { name: "Both-baron", image: "heroes/BoltBaron.jpg" },
   { name: "Bright", image: "heroes/Bright.jpg" },
   { name: "Butterfly", image: "heroes/Butterfly.jpg" },
   { name: "Capheny", image: "heroes/Capheny.jpg" },
   { name: "Celica", image: "heroes/Celica.jpg" },
+  { name: "Charlotte", image: "heroes/Charlotte.jpg" },
   { name: "Chaugnar", image: "heroes/Chaugnar.jpg" },
   { name: "Cresht", image: "heroes/Cresht.jpg" },
   { name: "D'arcy", image: "heroes/Darcy.jpg" },
   { name: "Dextra", image: "heroes/Dextra.jpg" },
-  { name: "Diệu Thuyền", image: "heroes/DieuThuyen.jpg" },
+  { name: "Dieu thuyen", image: "heroes/DieuThuyen.jpg" },
   { name: "Dirak", image: "heroes/Dirak.jpg" },
+  { name: "Dolia", image: "heroes/Dolia.jpg" },
+  { name: "Eland'orr", image: "heroes/Elandorr.jpg" },
   { name: "Elsu", image: "heroes/Elsu.jpg" },
   { name: "Enzo", image: "heroes/Enzo.jpg" },
   { name: "Errol", image: "heroes/Errol.jpg" },
@@ -47,6 +53,7 @@ const heroes = [
   { name: "Kain", image: "heroes/Kain.jpg" },
   { name: "Keera", image: "heroes/Keera.jpg" },
   { name: "Kil'groth", image: "heroes/Kilgroth.jpg" },
+  { name: "Kriknak", image: "heroes/Kriknak.jpg" },
   { name: "Kriktor", image: "heroes/Richter.jpg" },
   { name: "Krixi", image: "heroes/Krixi.jpg" },
   { name: "Krizzix", image: "heroes/Krizzix.jpg" },
@@ -55,7 +62,7 @@ const heroes = [
   { name: "Liliana", image: "heroes/Liliana.jpg" },
   { name: "Lindis", image: "heroes/Lindis.jpg" },
   { name: "Lorion", image: "heroes/Lorion.jpg" },
-  { name: "Lữ Bố", image: "heroes/Lubo.jpg" },
+  { name: "Lu Bo", image: "heroes/Lubo.jpg" },
   { name: "Lumburr", image: "heroes/Lumburr.jpg" },
   { name: "Maloch", image: "heroes/Maloch.jpg" },
   { name: "Marja", image: "heroes/Marja.jpg" },
@@ -67,7 +74,7 @@ const heroes = [
   { name: "Murad", image: "heroes/Murad.jpg" },
   { name: "Nakroth", image: "heroes/Nakroth.jpg" },
   { name: "Natalya", image: "heroes/Natalya.jpg" },
-  { name: "Ngộ Không", image: "heroes/NgoKhong.jpg" },
+  { name: "Ngo Khong", image: "heroes/NgoKhong.jpg" },
   { name: "Omega", image: "heroes/Omega.jpg" },
   { name: "Omen", image: "heroes/Omen.jpg" },
   { name: "Ormarr", image: "heroes/Ormarr.jpg" },
@@ -93,7 +100,7 @@ const heroes = [
   { name: "Teeri", image: "heroes/Teeri.jpg" },
   { name: "Tel'annas", image: "heroes/Telannas.jpg" },
   { name: "Thane", image: "heroes/Thane.jpg" },
-  { name: "Thorn", image: "heroes/Thorn.jpg" },
+  { name: "Thorne", image: "heroes/Thorn.jpg" },
   { name: "Toro", image: "heroes/Toro.jpg" },
   { name: "Triệu Vân", image: "heroes/TrieuVan.jpg" },
   { name: "Tulen", image: "heroes/Tulen.jpg" },
@@ -119,19 +126,40 @@ const heroes = [
 ];
 
 const heroContainer = document.querySelector(".hero-grid");
-heroes.forEach((hero) => {
-  const heroDiv = document.createElement("div");
-  heroDiv.className = "hero";
-  heroDiv.style.backgroundImage = `url(${hero.image})`;
-  heroDiv.onclick = () => {
-    selectedHeroImage = hero.image; // Cập nhật hình ảnh hero đã chọn
-    selectHero(hero.image); // Gọi hàm chọn hero
-  };
-  const heroNameDiv = document.createElement("div");
-  heroNameDiv.textContent = hero.name; // Thêm tên tướng dưới ảnh
-  heroNameDiv.className = "heroName";
-  heroDiv.appendChild(heroNameDiv); // Đảm bảo tên tướng nằm dưới ảnh
-  heroContainer.appendChild(heroDiv);
+
+// Hàm cập nhật giao diện với danh sách tướng
+function updateHeroDisplay(filteredHeroes) {
+  heroContainer.innerHTML = ""; // Xóa danh sách hiện tại
+  filteredHeroes.forEach((hero) => {
+    const heroDiv = document.createElement("div");
+    heroDiv.className = "hero";
+    heroDiv.style.backgroundImage = `url(${hero.image})`;
+    heroDiv.onclick = () => {
+      selectedHeroImage = hero.image; // Cập nhật hình ảnh hero đã chọn
+      selectHero(hero.image); // Gọi hàm chọn hero
+    };
+    const heroNameDiv = document.createElement("div");
+    heroNameDiv.textContent = hero.name; // Thêm tên tướng dưới ảnh
+    heroNameDiv.className = "heroName";
+    heroDiv.appendChild(heroNameDiv); // Đảm bảo tên tướng nằm dưới ảnh
+    heroContainer.appendChild(heroDiv);
+  });
+}
+
+// Hiển thị tất cả tướng khi trang được tải
+updateHeroDisplay(heroes);
+
+const searchInput = document.getElementById("searchInput");
+
+// Hàm tìm kiếm tướng
+searchInput.addEventListener("input", function () {
+  const searchTerm = this.value.toLowerCase(); // Lấy giá trị tìm kiếm và chuyển thành chữ thường
+  const filteredHeroes = heroes.filter(hero => 
+    hero.name.toLowerCase().includes(searchTerm) // Tìm kiếm tên tướng
+  );
+
+  // Cập nhật giao diện với danh sách tướng đã lọc
+  updateHeroDisplay(filteredHeroes);
 });
 
 const order = [
@@ -161,6 +189,7 @@ document.getElementById("startButton").onclick = function () {
   currentIndex = 0; // Reset chỉ số
   highlightNextSlot(); // Bắt đầu nhấp nháy ô đầu tiên
   startCountdown();
+  document.getElementById("swapButton").disabled = true;
   this.disabled = true;
   // Gửi tín hiệu bắt đầu qua WebSocket
   const data = {
@@ -223,6 +252,7 @@ function selectHero(image) {
     // Đặt hình tướng vào ô được chọn
     selectedSlot.style.backgroundImage = `url(${image})`;
     selectedSlot.dataset.heroImage = image; // Lưu hình ảnh hero vào thuộc tính dữ liệu
+    
 
     // Gửi cập nhật ngay khi chọn hình ảnh
     sendSlotUpdate(selectedSlot.id, image, "select");
@@ -246,6 +276,12 @@ function lockSlot() {
   }
 
   if (selectedSlots.length > 0) {
+    const pickB5 = document.getElementById("pickB5");
+    if (pickB5) {
+        // Giả sử bạn đã thực hiện khóa tướng ở ô B5
+        // Kích hoạt nút "Đổi Tướng"
+        document.getElementById("swapButton").disabled = false;
+    }
     startCountdown();
     // Phát âm thanh khi khóa tướng
     const lockSound = document.getElementById("lockSound");
@@ -353,6 +389,8 @@ editNameButton.onclick = function () {
       }
     }
   });
+
+  
 
   // Gửi tên qua WebSocket
   const dataToSend = {

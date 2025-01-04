@@ -164,16 +164,11 @@ body {
     align-items: center;
     margin-bottom: 20px;
   }
-  .search-bar {
-    flex: 1;
-    padding: 8px;
-    margin-right: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
+
   .hero-options {
     display: flex;
     gap: 10px;
+    margin-top: 0px;
   }
   .hero-option {
     padding: 8px 12px;
@@ -224,8 +219,8 @@ body {
   background-color: aqua;
 }
 #nameInput {
-  width: 600px;
-  height: 50px;
+  width: 700px;
+  height: 150px;
   font-size: medium;
   font-family: 'SVNOMNY';
 }
@@ -290,6 +285,11 @@ body {
       );
       transform: translateX(100%);
     }
+  }
+  #searchInput {
+    width: 800px;
+    height: 30px;
+    margin: 0 20px 0px 0px;
   }
 
 
