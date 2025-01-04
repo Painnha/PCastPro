@@ -169,7 +169,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('effect/backgroudPick.png'); /* Thay đổi đường dẫn hình ảnh */
+    background-image: url('effect/backgroudPickA.png');
     background-size: cover;
     z-index: 1; /* Đảm bảo hình ảnh nằm trên hình tướng nhưng dưới tên tuyển thủ */
     display: none; /* Ẩn mặc định */

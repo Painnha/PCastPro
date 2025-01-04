@@ -116,11 +116,7 @@ function updateSlot(data) {
             slot.classList.add('active');
         }
 
-        // Hiển thị hình ảnh đè lên khi chọn
-        const overlay = slot.querySelector('.active-overlay');
-        if (overlay) {
-            overlay.style.display = 'block'; // Hiện hình ảnh đè lên
-        }
+
 
         // Ẩn logo và tên tuyển thủ ngay lập tức khi chọn
         const logo = slot.querySelector('.lane-logo');

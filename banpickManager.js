@@ -271,17 +271,13 @@ function lockSlot() {
   });
 
   if (!allFilled) {
-    alert("Vui lòng điền tướng vào tất cả các ô trước khi khóa!");
+    document.getElementById("error-message").innerText = "Vui lòng pick tướng vào tất cả các ô trước khi khóa!";
     return;
   }
 
   if (selectedSlots.length > 0) {
-    const pickB5 = document.getElementById("pickB5");
-    if (pickB5) {
-        // Giả sử bạn đã thực hiện khóa tướng ở ô B5
-        // Kích hoạt nút "Đổi Tướng"
-        document.getElementById("swapButton").disabled = false;
-    }
+    document.getElementById("error-message").innerText = "";
+    
     startCountdown();
     // Phát âm thanh khi khóa tướng
     const lockSound = document.getElementById("lockSound");

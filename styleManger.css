@@ -296,5 +296,11 @@ body {
     height: 30px;
     margin: 0 20px 0px 0px;
   }
+  #error-message{
+    color: black;
+    font-weight: bold;
+    background-color: yellow;
+    font-size: 25px;
+  }
 
 
