@@ -2,19 +2,19 @@
 const socket = new WebSocket('ws://localhost:3000/ws');
 
 socket.onopen = () => {
-    console.log('WebSocket connection established in banpickManager.js');
+    // console.log('WebSocket connection established in banpickManager.js');
 };
 
 socket.onmessage = (event) => {
-    console.log('Message received from server:', event.data);
+    // console.log('Message received from server:', event.data);
 };
 
 socket.onerror = (error) => {
-    console.error('WebSocket error:', error);
+    // console.error('WebSocket error:', error);
 };
 
 socket.onclose = () => {
-    console.log('WebSocket connection closed');
+    // console.log('WebSocket connection closed');
 };
 
 

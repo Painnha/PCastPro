@@ -1,79 +1,118 @@
-// Kiểm tra trạng thái đăng nhập
-(async () => {
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-        window.location.href = '/login.html'; // Chuyển hướng nếu không có token
-        return;
-    }
-
-    try {
-        const response = await fetch('/check-auth', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.status === 200) {
-            const data = await response.json();
-            const welcomeMessage = document.getElementById('welcomeMessage');
-            if (welcomeMessage) {
-                welcomeMessage.textContent = `Welcome, ${data.user.username}!`;
-            }
-        } else if (response.status === 401) {
-            window.location.href = '/login.html'; // Chuyển hướng nếu hết hạn session
-        }
-    } catch {
-        window.location.href = '/login.html'; // Chuyển hướng nếu xảy ra lỗi
-    }
-})();
+import { database } from './firebase-config.js';
+import { ref, get } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
 // Kết nối WebSocket
-(() => {
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-        window.location.href = '/login.html'; // Chuyển hướng nếu không có token
-        return;
-    }
-
+const initializeWebSocket = (token) => {
     const ws = new WebSocket(`ws://localhost:3000/ws?token=${token}`);
 
     ws.onopen = () => {
+        console.log('WebSocket connection established.');
         ws.send('Hello from client!');
     };
 
     ws.onmessage = (event) => {
-        // Xử lý tin nhắn từ server nếu cần
+        console.log('Message from server:', event.data);
     };
 
     ws.onclose = () => {
-        // Xử lý khi kết nối WebSocket bị đóng nếu cần
+        console.log('WebSocket connection closed.');
     };
 
-    ws.onerror = () => {
-        // Xử lý lỗi WebSocket nếu cần
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
     };
+};
+
+// Kiểm tra License Key
+const checkLicenseKey = async () => {
+    const token = localStorage.getItem('authToken');
+
+    if (!token) {
+        alert('Vui lòng kích hoạt License Key');
+        window.location.href = '/activate.html';
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:3000/check-license', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            alert('License Key không hợp lệ. Vui lòng kích hoạt lại.');
+            localStorage.removeItem('authToken');
+            window.location.href = '/activate.html';
+        }
+    } catch (error) {
+        console.error('Error checking license:', error);
+        alert('Không thể kiểm tra License Key. Vui lòng thử lại.');
+        window.location.href = '/activate.html';
+    }
+};
+
+// Gọi hàm kiểm tra License Key
+(async () => {
+    await checkLicenseKey();
 })();
 
-// Xử lý nút Đăng xuất
-document.addEventListener('DOMContentLoaded', () => {
-    const logoutButton = document.getElementById('logoutButton');
+// Kích hoạt License Key nếu chưa có
+const activateLicenseKey = async () => {
+    const token = localStorage.getItem('authToken');
 
+    if (!token) {
+        const licenseKey = prompt('Nhập License Key của bạn:');
+        if (!licenseKey) {
+            alert('License Key không được để trống!');
+            window.location.href = '/activate.html';
+            return;
+        }
+        const deviceId = 'unique-device-id'; // Có thể thay bằng UUID hoặc MAC Address thực tế
+
+        try {
+            const response = await fetch('http://localhost:3000/activate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ licenseKey, deviceId })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('authToken', data.token);
+                alert('Kích hoạt thành công!');
+                return true;
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Kích hoạt thất bại');
+                window.location.href = '/activate.html';
+                return false;
+            }
+        } catch (error) {
+            console.error('Error activating license:', error);
+            alert('Đã có lỗi xảy ra. Vui lòng thử lại.');
+            window.location.href = '/activate.html';
+            return false;
+        }
+    }
+    return true;
+};
+
+// Xử lý nút Đăng xuất
+const initializeLogout = () => {
+    const logoutButton = document.getElementById('logoutButton');
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
-            localStorage.removeItem('authToken'); // Xóa token khỏi localStorage
+            localStorage.removeItem('authToken'); // Xóa token khỏi LocalStorage
             const logoutMessage = document.getElementById('logoutMessage');
             if (logoutMessage) {
-                logoutMessage.textContent = 'You have logged out.';
+                logoutMessage.textContent = 'Bạn đã đăng xuất.';
             }
             setTimeout(() => {
-                window.location.href = '/login.html'; // Chuyển hướng sau 1 giây
+                window.location.href = '/activate.html'; // Chuyển hướng sau 1 giây
             }, 1000);
         });
     }
-});
+};
 
 // Kiểm tra trạng thái xác thực định kỳ
 const checkAuthPeriodically = () => {
@@ -81,26 +120,39 @@ const checkAuthPeriodically = () => {
         const token = localStorage.getItem('authToken');
 
         if (!token) {
-            window.location.href = '/login.html'; // Chuyển hướng nếu không có token
+            window.location.href = '/activate.html';
             return;
         }
 
         try {
             const response = await fetch('/check-auth', {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.status === 401) {
-                window.location.href = '/login.html'; // Chuyển hướng nếu hết hạn session
+                localStorage.removeItem('authToken');
+                window.location.href = '/activate.html';
             }
-        } catch {
-            window.location.href = '/login.html'; // Chuyển hướng nếu xảy ra lỗi
+        } catch (error) {
+            console.error('Error checking authentication:', error);
+            window.location.href = '/activate.html';
         }
-    }, 5000); // Kiểm tra mỗi 5 giây
+    }, 60000); // Kiểm tra mỗi 60 giây
 };
 
-// Gọi hàm kiểm tra định kỳ
-checkAuthPeriodically();
+// Khởi tạo các chức năng
+(async () => {
+    const isActivated = await activateLicenseKey(); // Kích hoạt License Key nếu chưa có
+    if (!isActivated) return;
+
+    const isValidLicense = await checkLicenseKey(); // Kiểm tra License Key hợp lệ
+    if (!isValidLicense) return;
+
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        initializeWebSocket(token); // Kết nối WebSocket sau khi kiểm tra License Key
+    }
+    initializeLogout(); // Thiết lập nút Đăng xuất
+    checkAuthPeriodically(); // Kiểm tra trạng thái định kỳ
+})();
