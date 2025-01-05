@@ -13,7 +13,7 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    border: 3px solid gray;
+    border: 3px solid white;
     background-color: #444141;
     display: flex; /* Sử dụng Flexbox */
     flex-direction: column; /* Đặt chiều dọc */
@@ -29,8 +29,8 @@ body {
     height: auto;
   }
   @font-face {
-    font-family: 'SVNOMNY'; /* Tên font chữ của bạn */
-    src: url('../../shared/font/SVNOMNYBLACK.OTF') format('opentype'); /* Đường dẫn đến file font */
+    font-family: 'SVNOMNY';
+    src: url('../../shared/font/SVNOMNYBLACK.OTF') format('opentype');
     font-weight: normal;
     font-style: normal;
 }

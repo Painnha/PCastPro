@@ -1,6 +1,13 @@
 {
   "dependencies": {
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "express-ws": "^5.0.2",
+    "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
+    "memorystore": "^1.6.7",
     "ws": "^8.18.0"
   }
 }

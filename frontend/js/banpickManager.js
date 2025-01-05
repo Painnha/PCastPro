@@ -1,3 +1,24 @@
+// Kết nối WebSocket
+const socket = new WebSocket('ws://localhost:3000/ws');
+
+socket.onopen = () => {
+    console.log('WebSocket connection established in banpickManager.js');
+};
+
+socket.onmessage = (event) => {
+    console.log('Message received from server:', event.data);
+};
+
+socket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+};
+
+socket.onclose = () => {
+    console.log('WebSocket connection closed');
+};
+
+
+
 let selectedHeroImage = ""; // Khởi tạo biến để lưu hình ảnh hero đã chọn
 
 // Dữ liệu tướng nhúng trực tiếp
@@ -193,7 +214,7 @@ document.getElementById("startButton").onclick = function () {
   this.disabled = true;
   // Gửi tín hiệu bắt đầu qua WebSocket
   const data = {
-    countdown: "restartCountdown",
+    type: "restartCountdown",
   };
   socket.send(JSON.stringify(data)); // Gửi thông điệp
 };
@@ -352,8 +373,7 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
-// WebSocket connection
-const socket = new WebSocket("ws://localhost:8080");
+
 
 function sendSlotUpdate(slotId, image, type, countdown) {
   const data = {
