@@ -1,17 +1,26 @@
-import { database } from './firebase-config.js';
-import { ref, get } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
-// Kết nối WebSocket
 const initializeWebSocket = (token) => {
     const ws = new WebSocket(`ws://localhost:3000/ws?token=${token}`);
 
     ws.onopen = () => {
         console.log('WebSocket connection established.');
-        ws.send('Hello from client!');
     };
 
     ws.onmessage = (event) => {
         console.log('Message from server:', event.data);
+        
+        try {
+            const data = JSON.parse(event.data);
+            
+            // Xử lý force logout
+            if (data.type === 'force_logout') {
+                handleForceLogout(data.message, data.reason);
+                return;
+            }
+            
+        } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+        }
     };
 
     ws.onclose = () => {
@@ -21,138 +30,210 @@ const initializeWebSocket = (token) => {
     ws.onerror = (error) => {
         console.error('WebSocket error:', error);
     };
+    
+    return ws;
 };
 
-// Kiểm tra License Key
-const checkLicenseKey = async () => {
+// Xử lý force logout
+const handleForceLogout = (message, reason) => {
+    let alertMessage = message;
+    
+    switch(reason) {
+        case 'force_logout':
+            alertMessage += '\n\nBạn sẽ được chuyển hướng để đăng nhập lại.';
+            break;
+        case 'session_expired':
+            alertMessage = 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.';
+            break;
+        case 'account_banned':
+            alertMessage = 'Tài khoản của bạn đã bị khóa. Liên hệ quản trị viên.';
+            break;
+        default:
+            alertMessage = 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.';
+    }
+    
+    alert(alertMessage);
+    
+    // Xóa token và chuyển hướng
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('sessionId');
+    localStorage.removeItem('userInfo');
+    window.location.href = '/login.html';
+};
+
+
+// Xác thực đăng nhập
+const checkUserSession = async () => {
     const token = localStorage.getItem('authToken');
 
     if (!token) {
-        alert('Vui lòng kích hoạt License Key');
-        window.location.href = '/activate.html';
-        return;
+        alert('Bạn chưa đăng nhập. Bạn sẽ được chuyển hướng đến trang đăng nhập.');
+        window.location.href = '/login.html';
+        return false;
     }
 
     try {
-        const response = await fetch('http://localhost:3000/check-license', {
+        const response = await fetch('http://localhost:3000/check-session', {
             method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${token}` },
         });
 
-        if (!response.ok) {
-            alert('License Key không hợp lệ. Vui lòng kích hoạt lại.');
-            localStorage.removeItem('authToken');
-            window.location.href = '/activate.html';
-        }
-    } catch (error) {
-        console.error('Error checking license:', error);
-        alert('Không thể kiểm tra License Key. Vui lòng thử lại.');
-        window.location.href = '/activate.html';
-    }
-};
-
-// Gọi hàm kiểm tra License Key
-(async () => {
-    await checkLicenseKey();
-})();
-
-// Kích hoạt License Key nếu chưa có
-const activateLicenseKey = async () => {
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-        const licenseKey = prompt('Nhập License Key của bạn:');
-        if (!licenseKey) {
-            alert('License Key không được để trống!');
-            window.location.href = '/activate.html';
-            return;
-        }
-        const deviceId = 'unique-device-id'; // Có thể thay bằng UUID hoặc MAC Address thực tế
-
-        try {
-            const response = await fetch('http://localhost:3000/activate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ licenseKey, deviceId })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                localStorage.setItem('authToken', data.token);
-                alert('Kích hoạt thành công!');
-                return true;
-            } else {
-                const data = await response.json();
-                alert(data.message || 'Kích hoạt thất bại');
-                window.location.href = '/activate.html';
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Session hợp lệ:', data.message);
+            
+            // Hiển thị thông tin user
+            if (data.user) {
+                console.log('User info:', data.user);
+                updateUserInfo(data.user);
+            }
+            
+            return true;
+        } else {
+            const data = await response.json();
+            
+            // Xử lý force logout
+            if (data.forceLogout) {
+                handleForceLogout(data.message, 'session_invalid');
                 return false;
             }
-        } catch (error) {
-            console.error('Error activating license:', error);
-            alert('Đã có lỗi xảy ra. Vui lòng thử lại.');
-            window.location.href = '/activate.html';
+            
+            alert(data.message || 'Phiên đăng nhập không hợp lệ. Bạn sẽ được chuyển hướng đến trang đăng nhập.');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('sessionId');
+            localStorage.removeItem('userInfo');
+            window.location.href = '/login.html';
             return false;
         }
+    } catch (error) {
+        console.error('Error checking session:', error);
+        alert('Đã có lỗi xảy ra khi kiểm tra phiên đăng nhập. Bạn sẽ được chuyển hướng đến trang đăng nhập.');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('sessionId');
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login.html';
+        return false;
     }
-    return true;
 };
 
-// Xử lý nút Đăng xuất
-const initializeLogout = () => {
-    const logoutButton = document.getElementById('logoutButton');
-    if (logoutButton) {
-        logoutButton.addEventListener('click', () => {
-            localStorage.removeItem('authToken'); // Xóa token khỏi LocalStorage
-            const logoutMessage = document.getElementById('logoutMessage');
-            if (logoutMessage) {
-                logoutMessage.textContent = 'Bạn đã đăng xuất.';
-            }
-            setTimeout(() => {
-                window.location.href = '/activate.html'; // Chuyển hướng sau 1 giây
-            }, 1000);
+// Cập nhật thông tin user trên giao diện
+const updateUserInfo = (user) => {
+    const userInfoElement = document.getElementById('userInfo');
+    if (userInfoElement) {
+        userInfoElement.textContent = `Xin chào, ${user.displayName || user.email}${user.role === 'admin' ? ' (Admin)' : ''}`;
+    }
+    
+    // Load user themes
+    loadUserThemes(user);
+};
+
+// Load user's owned themes into dropdown
+const loadUserThemes = (user) => {
+    const themeSelect = document.getElementById('themeSelect');
+    if (!themeSelect || !user) return;
+    
+    // Check if user has owned themes
+    if (!user.ownedThemes || user.ownedThemes.length === 0) {
+        // Hide dropdown and show message
+        themeSelect.style.display = 'none';
+        
+        // Create or update no themes message
+        let noThemesMsg = document.getElementById('noThemesMessage');
+        if (!noThemesMsg) {
+            noThemesMsg = document.createElement('span');
+            noThemesMsg.id = 'noThemesMessage';
+            noThemesMsg.className = 'no-themes-message';
+            themeSelect.parentNode.appendChild(noThemesMsg);
+        }
+        noThemesMsg.textContent = 'chưa sở hữu theme nào';
+        noThemesMsg.style.display = 'inline';
+        return;
+    }
+    
+    // Show dropdown and hide no themes message
+    themeSelect.style.display = 'inline-block';
+    const noThemesMsg = document.getElementById('noThemesMessage');
+    if (noThemesMsg) {
+        noThemesMsg.style.display = 'none';
+    }
+    
+    // Clear existing options
+    themeSelect.innerHTML = '';
+    
+    // Add owned themes
+    user.ownedThemes.forEach(themeId => {
+        const option = document.createElement('option');
+        option.value = themeId;
+        option.textContent = themeId.charAt(0).toUpperCase() + themeId.slice(1);
+        themeSelect.appendChild(option);
+    });
+    
+    // Set current theme
+    if (user.currentTheme) {
+        themeSelect.value = user.currentTheme;
+    }
+};
+
+// Handle theme change
+const handleThemeChange = async (newThemeId) => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    
+    try {
+        const response = await fetch('http://localhost:3000/user/update-theme', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ currentTheme: newThemeId })
         });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Theme updated successfully:', newThemeId);
+            alert('Theme đã được cập nhật thành công!');
+        } else {
+            const data = await response.json();
+            console.error('Failed to update theme:', data.message);
+            alert('Không thể cập nhật theme: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error updating theme:', error);
+        alert('Đã có lỗi xảy ra khi cập nhật theme.');
     }
 };
 
-// Kiểm tra trạng thái xác thực định kỳ
-const checkAuthPeriodically = () => {
-    setInterval(async () => {
-        const token = localStorage.getItem('authToken');
-
-        if (!token) {
-            window.location.href = '/activate.html';
-            return;
-        }
-
-        try {
-            const response = await fetch('/check-auth', {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (response.status === 401) {
-                localStorage.removeItem('authToken');
-                window.location.href = '/activate.html';
-            }
-        } catch (error) {
-            console.error('Error checking authentication:', error);
-            window.location.href = '/activate.html';
-        }
-    }, 60000); // Kiểm tra mỗi 60 giây
+// Xử lý đăng xuất
+const logout = () => {
+    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('sessionId');
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login.html';
+    }
 };
 
-// Khởi tạo các chức năng
 (async () => {
-    const isActivated = await activateLicenseKey(); // Kích hoạt License Key nếu chưa có
-    if (!isActivated) return;
-
-    const isValidLicense = await checkLicenseKey(); // Kiểm tra License Key hợp lệ
-    if (!isValidLicense) return;
+    const isValidSession = await checkUserSession();
+    if (!isValidSession) return;
 
     const token = localStorage.getItem('authToken');
     if (token) {
-        initializeWebSocket(token); // Kết nối WebSocket sau khi kiểm tra License Key
+        initializeWebSocket(token); 
     }
-    initializeLogout(); // Thiết lập nút Đăng xuất
-    checkAuthPeriodically(); // Kiểm tra trạng thái định kỳ
+    
+    // Setup logout button
+    const logoutButton = document.getElementById('logoutButton');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', logout);
+    }
+    
+    // Setup theme dropdown
+    const themeSelect = document.getElementById('themeSelect');
+    if (themeSelect) {
+        themeSelect.addEventListener('change', (e) => {
+            handleThemeChange(e.target.value);
+        });
+    }
 })();

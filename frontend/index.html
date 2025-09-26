@@ -8,9 +8,16 @@
   </head>
   <body>
     <div class="container">
-      <!-- Khu vực Ban -->
-      <!-- <button id="logoutButton">Đăng xuất</button>
-      <div id="logoutMessage"></div> -->
+      <!-- User info and logout section -->
+      <div class="user-section">
+        <span id="userInfo">Đang tải thông tin...</span>
+        <div class="theme-section">
+          <label for="themeSelect">Theme:</label>
+          <select id="themeSelect" class="theme-dropdown">
+          </select>
+        </div>
+        <button id="logoutButton">Đăng xuất</button>
+      </div>
       
        <div class="section-banpick">
 
@@ -120,7 +127,7 @@
 
     <script src="js/banpickManager.js"></script>
     <script type="module" src="js/index.js"></script>
-    <script type="module" src="js/firebase-config.js"></script>
+   
 
 
   </body>

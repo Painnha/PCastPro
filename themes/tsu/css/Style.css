@@ -1,0 +1,312 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    background-color: black;
+}
+
+/* Định nghĩa kiểu chung */
+.slot {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 3px solid white;
+    background-color: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+    position: relative;
+}
+
+.lane-logo {
+    width: 50px;
+    height: auto;
+}
+
+@font-face {
+    font-family: 'SVNOMNY';
+    src: url('/assets/font/SVNOMNYBLACK.OTF') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.player-name {
+    font-family: 'SVNOMNY'; /* Sử dụng font chữ tùy chỉnh */
+    font-size: 15px; /* Kích thước font chữ */
+    color: #ffffff; /* Màu chữ */
+    text-align: center;
+    position: absolute;
+    bottom: 5px;
+    z-index: 2;
+    text-transform: uppercase;
+}
+
+/* Kích thước các slot */
+.ban {
+    width: 100px;
+    height: 100px;
+    position: relative;
+}
+
+/* Ban slot background image */
+.ban::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/assets/Overlay/nenBan.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 10;
+    pointer-events: none; /* Ensures clicks pass through */
+}
+
+.ban .heroImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    z-index: 11; /* Higher z-index to be above the ban X image */
+}
+
+/* Hide background image when hero is selected or locked */
+.ban.selected::before {
+    display: none !important;
+}
+
+/* Ban active styles */
+.ban.active {
+    border: 3px solid gray;
+    position: relative;
+    overflow: hidden;
+    z-index: 3;
+}
+
+/* Make sure the X doesn't move when active */
+.ban.active::before {
+    animation: none;
+    border: none;
+    transform: none;
+    top: 0;
+    left: 0;
+    position: absolute;
+}
+
+/* Gradient effect for Team A bans */
+#banListA .ban::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/assets/Overlay/backgroudPickB.png');
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+    opacity: 0.3;
+}
+
+/* Gradient effect for Team B bans */
+#banListB .ban::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/assets/Overlay/backgroudPickA.png');
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+    opacity: 0.3;
+}
+
+/* Active ban slot animation - smoother fade in/out */
+#banListA .ban.active::after {
+    animation: fadeTeamA 1.5s ease-in-out infinite;
+}
+
+#banListB .ban.active::after {
+    animation: fadeTeamB 1.5s ease-in-out infinite;
+}
+
+@keyframes fadeTeamA {
+    0%, 100% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.9;
+    }
+}
+
+@keyframes fadeTeamB {
+    0%, 100% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.9;
+    }
+}
+
+@keyframes activeGradientGlow {
+    0% {
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5),
+                   0 0 20px rgba(255, 255, 255, 0.3),
+                   0 0 30px rgba(255, 255, 255, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.8),
+                   0 0 25px rgba(255, 255, 255, 0.5),
+                   0 0 35px rgba(255, 255, 255, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5),
+                   0 0 20px rgba(255, 255, 255, 0.3),
+                   0 0 30px rgba(255, 255, 255, 0.1);
+    }
+}
+
+.pick {
+    width: 170px;
+    height: 246px;
+    transition: none;
+    position: relative;
+    margin: -3px;
+    background-color: transparent;
+}
+
+.pick-list {
+    display: flex;
+    gap: 0px;
+}
+
+.ban-list {
+    display: flex;
+    gap: 20px;
+    position: relative;
+}
+
+/* Styles for pick slots only - maintain original active styles */
+.pick.active {
+    border: 3px solid gray;
+    position: relative;
+    top: 0;
+    bottom: 0;
+    overflow: hidden;
+    z-index: 3;
+    animation: borderGlow 2s linear infinite;
+    align-items: center;
+    justify-content: center;
+}
+
+.active::before {
+    content: "";
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border: 5px solid transparent;
+    border-image: linear-gradient(
+        to right,
+        transparent,
+        white,
+        transparent
+    ) 1;
+    animation: borderRun 2s linear infinite;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.heroheroImage {
+    position: absolute;
+}
+
+#countdown {
+    font-family: 'SVNOMNY'; /* Sử dụng font chữ tùy chỉnh */
+    font-size: 50px; /* Kích thước font chữ */
+    color: #ffffff; /* Màu chữ */
+    text-align: center;
+    bottom: 5px;
+    text-transform: uppercase;
+}
+
+@keyframes glow {
+    0% { box-shadow: 0 0 10px yellow; }
+    50% { box-shadow: 0 0 20px orange; }
+    100% { box-shadow: 0 0 10px yellow; }
+}
+
+@keyframes zoomInOut {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@keyframes borderGlow {
+    0% {
+        box-shadow: inset 0 0 5px yellow, inset 0 0 10px yellow, inset 0 0 15px yellow, inset 0 0 20px yellow;
+    }
+    25% {
+        box-shadow: inset 0 0 5px orange, inset 0 0 10px orange, inset 0 0 15px orange, inset 0 0 20px orange;
+    }
+    50% {
+        box-shadow: inset 0 0 5px red, inset 0 0 10px red, inset 0 0 15px red, inset 0 0 20px red;
+    }
+    75% {
+        box-shadow: inset 0 0 5px orange, inset 0 0 10px orange, inset 0 0 15px orange, inset 0 0 20px orange;
+    }
+    100% {
+        box-shadow: inset 0 0 5px yellow, inset 0 0 10px yellow, inset 0 0 15px yellow, inset 0 0 20px yellow;
+    }
+}
+
+@keyframes borderRun {
+    0% {
+        border-image-source: linear-gradient(
+            to right,
+            transparent,
+            white,
+            transparent
+        );
+        transform: translateX(-100%);
+    }
+    100% {
+        border-image-source: linear-gradient(
+            to right,
+            transparent,
+            white,
+            transparent
+        );
+        transform: translateX(100%);
+    }
+}
+
+.active-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/assets/Overlay/backgroudPickA.png');
+    background-size: cover;
+    z-index: 1; /* Đảm bảo hình ảnh nằm trên hình tướng nhưng dưới tên tuyển thủ */
+    display: none; /* Ẩn mặc định */
+}
+
+/* Khi có tướng được chọn, thêm background màu tối */
+.pick.selected {
+    background-color: #444141;
+}
+
+

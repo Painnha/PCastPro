@@ -1,28 +1,26 @@
-// Kết nối WebSocket
-const socket = new WebSocket('ws://localhost:3000/ws');
+const socket = new WebSocket("ws://localhost:3000/ws");
 
 socket.onopen = () => {
-    // console.log('WebSocket connection established in banpickManager.js');
+  // console.log('WebSocket connection established in banpickManager.js');
 };
 
 socket.onmessage = (event) => {
-    // console.log('Message received from server:', event.data);
+  // console.log('Message received from server:', event.data);
 };
 
 socket.onerror = (error) => {
-    // console.error('WebSocket error:', error);
+  // console.error('WebSocket error:', error);
 };
 
 socket.onclose = () => {
-    // console.log('WebSocket connection closed');
+  // console.log('WebSocket connection closed');
 };
 
+let selectedHeroImage = "";
 
-
-let selectedHeroImage = ""; // Khởi tạo biến để lưu hình ảnh hero đã chọn
-
-// Dữ liệu tướng nhúng trực tiếp
 const heroes = [
+  { name: "Henio", image: "images/heroes/Henio.jpg" },
+  { name: "Bỏ trống", image: "images/heroes/khongcam.png" },
   { name: "Airi", image: "images/heroes/Airi.jpg" },
   { name: "Aleister", image: "images/heroes/Aleister.jpg" },
   { name: "Alice", image: "images/heroes/Alice.jpg" },
@@ -38,10 +36,11 @@ const heroes = [
   { name: "Aya", image: "images/heroes/Aya.jpg" },
   { name: "Azzen'ka", image: "images/heroes/Azzenka.jpg" },
   { name: "Baldum", image: "images/heroes/Baldum.jpg" },
+  { name: "Billow", image: "images/heroes/Billow.jpg" },
   { name: "Bijan", image: "images/heroes/Bijan.jpg" },
   { name: "Bonnie", image: "images/heroes/Bonnie.jpg" },
-  { name: "Biron", image: "images/heroes/Biron.jpg" },
   { name: "Both-baron", image: "images/heroes/BoltBaron.jpg" },
+  { name: "Biron", image: "images/heroes/Biron.jpg" },
   { name: "Bright", image: "images/heroes/Bright.jpg" },
   { name: "Butterfly", image: "images/heroes/Butterfly.jpg" },
   { name: "Capheny", image: "images/heroes/Capheny.jpg" },
@@ -54,6 +53,7 @@ const heroes = [
   { name: "Dieu thuyen", image: "images/heroes/DieuThuyen.jpg" },
   { name: "Dirak", image: "images/heroes/Dirak.jpg" },
   { name: "Dolia", image: "images/heroes/Dolia.jpg" },
+  { name: "Erin", image: "images/heroes/Erin.jpg" },
   { name: "Eland'orr", image: "images/heroes/Elandorr.jpg" },
   { name: "Elsu", image: "images/heroes/Elsu.jpg" },
   { name: "Enzo", image: "images/heroes/Enzo.jpg" },
@@ -148,38 +148,38 @@ const heroes = [
 
 const heroContainer = document.querySelector(".hero-grid");
 
-// Hàm cập nhật giao diện với danh sách tướng
+
 function updateHeroDisplay(filteredHeroes) {
-  heroContainer.innerHTML = ""; // Xóa danh sách hiện tại
+  heroContainer.innerHTML = ""; 
   filteredHeroes.forEach((hero) => {
     const heroDiv = document.createElement("div");
     heroDiv.className = "hero";
     heroDiv.style.backgroundImage = `url(${hero.image})`;
     heroDiv.onclick = () => {
-      selectedHeroImage = hero.image; // Cập nhật hình ảnh hero đã chọn
-      selectHero(hero.image); // Gọi hàm chọn hero
+      selectedHeroImage = hero.image; 
+      selectHero(hero.image); 
     };
     const heroNameDiv = document.createElement("div");
-    heroNameDiv.textContent = hero.name; // Thêm tên tướng dưới ảnh
+    heroNameDiv.textContent = hero.name;
     heroNameDiv.className = "heroName";
-    heroDiv.appendChild(heroNameDiv); // Đảm bảo tên tướng nằm dưới ảnh
+    heroDiv.appendChild(heroNameDiv);
     heroContainer.appendChild(heroDiv);
   });
 }
 
-// Hiển thị tất cả tướng khi trang được tải
+
 updateHeroDisplay(heroes);
 
 const searchInput = document.getElementById("searchInput");
 
-// Hàm tìm kiếm tướng
+
 searchInput.addEventListener("input", function () {
-  const searchTerm = this.value.toLowerCase(); // Lấy giá trị tìm kiếm và chuyển thành chữ thường
-  const filteredHeroes = heroes.filter(hero => 
-    hero.name.toLowerCase().includes(searchTerm) // Tìm kiếm tên tướng
+  const searchTerm = this.value.toLowerCase(); 
+  const filteredHeroes = heroes.filter(
+    (hero) => hero.name.toLowerCase().includes(searchTerm) 
   );
 
-  // Cập nhật giao diện với danh sách tướng đã lọc
+
   updateHeroDisplay(filteredHeroes);
 });
 
@@ -207,37 +207,35 @@ const order = [
 let currentIndex = 0;
 
 document.getElementById("startButton").onclick = function () {
-  currentIndex = 0; // Reset chỉ số
-  highlightNextSlot(); // Bắt đầu nhấp nháy ô đầu tiên
+  currentIndex = 0; 
+  highlightNextSlot(); 
   startCountdown();
 
   this.disabled = true;
-  // Gửi tín hiệu bắt đầu qua WebSocket
+
   const data = {
-    type: "restartCountdown",
+    countdown: "restartCountdown",
   };
-  socket.send(JSON.stringify(data)); // Gửi thông điệp
+  socket.send(JSON.stringify(data));
 };
 
-// Đếm ngược
-let countdown; // Biến để lưu ID của bộ đếm thời gian
-let timeLeft = 60; // Thời gian bắt đầu là 60 giây
+
+let countdown; 
+let timeLeft = 60; 
 const countdownDisplay = document.getElementById("countdown");
 
 function startCountdown() {
-  clearInterval(countdown); // Dừng bất kỳ bộ đếm nào đang chạy
+  clearInterval(countdown); 
   timeLeft = 60;
-  countdownDisplay.textContent = timeLeft; // Hiển thị thời gian ban đầu
+  countdownDisplay.textContent = timeLeft; 
 
   countdown = setInterval(() => {
-    timeLeft--; // Giảm thời gian
-    countdownDisplay.textContent = timeLeft; // Cập nhật hiển thị
-
+    timeLeft--; 
+    countdownDisplay.textContent = timeLeft; 
     if (timeLeft <= 0) {
-      clearInterval(countdown); // Dừng đếm ngược khi đến 0
-     
+      clearInterval(countdown); 
     }
-  }, 1000); // Cập nhật mỗi giây
+  }, 1000); 
 }
 
 function highlightNextSlot() {
@@ -252,7 +250,7 @@ function highlightNextSlot() {
     }
     slot.classList.add("selected");
 
-    // Send highlight update to WebSocket
+  
     sendSlotUpdate(slotId, slot.style.backgroundImage, "banActive");
 
     if (slotId === "pickB1" || slotId === "pickA2" || slotId === "pickA4") {
@@ -267,21 +265,17 @@ function highlightNextSlot() {
 }
 
 function selectHero(image) {
-  // Lấy ô đang được chọn
+
   const selectedSlot = document.querySelector(".slot.selected");
   if (selectedSlot && !selectedSlot.classList.contains("locked")) {
-    // Đặt hình tướng vào ô được chọn
-    selectedSlot.style.backgroundImage = `url(${image})`;
-    selectedSlot.dataset.heroImage = image; // Lưu hình ảnh hero vào thuộc tính dữ liệu
-    
 
-    // Gửi cập nhật ngay khi chọn hình ảnh
+    selectedSlot.style.backgroundImage = `url(${image})`;
+    selectedSlot.dataset.heroImage = image; 
     sendSlotUpdate(selectedSlot.id, image, "select");
   }
 }
 
 function lockSlot() {
- 
   const selectedSlots = document.querySelectorAll(".slot.active-ban");
   let allFilled = true;
 
@@ -292,24 +286,26 @@ function lockSlot() {
   });
 
   if (!allFilled) {
-    document.getElementById("error-message").innerText = "Vui lòng pick tướng vào tất cả các ô trước khi khóa!";
+    document.getElementById("error-message").innerText =
+      "Vui lòng pick tướng vào tất cả các ô trước khi khóa!";
     return;
   }
 
   if (selectedSlots.length > 0) {
     document.getElementById("error-message").innerText = "";
-    
-    startCountdown();
-    // Phát âm thanh khi khóa tướng
-    const lockSound = document.getElementById("lockSound");
-    lockSound.play(); // Phát âm thanh
 
-    // Gửi thông điệp qua WebSocket để phát âm thanh ở BanListA.html
+    startCountdown();
+
+    const lockSound = document.getElementById("lockSound");
+    lockSound.play(); 
+
+    
     const data = {
       type: "playSound",
-      sound: "PickEffect.mp3", // Tên file âm thanh
+      sound: "PickEffect.mp3", 
+      
     };
-    socket.send(JSON.stringify(data)); // Gửi thông điệp
+    socket.send(JSON.stringify(data)); 
 
     selectedSlots.forEach((selectedSlot) => {
       if (selectedSlot) {
@@ -318,10 +314,10 @@ function lockSlot() {
         const heroImage = selectedSlot.dataset.heroImage;
         selectedSlot.style.backgroundImage = `url(${heroImage})`;
 
-        // Ẩn logo và tên tuyển thủ
+
         const logo = selectedSlot.querySelector(".lane-logo");
         const playerName = selectedSlot.querySelector(".player-name");
-        if (logo) logo.style.display = "none"; // Ẩn logo
+        if (logo) logo.style.display = "none"; 
 
         if (selectedSlot.id.startsWith("pick")) {
           selectedSlot.classList.add("zoom-effect");
@@ -330,7 +326,6 @@ function lockSlot() {
           selectedSlot.style.filter = "grayscale(100%)";
         }
 
-        // Send update to WebSocket
         sendSlotUpdate(selectedSlot.id, heroImage, "lock", "restartCountdown");
       }
     });
@@ -339,10 +334,10 @@ function lockSlot() {
   }
 }
 
-// Gán sự kiện cho nút Khóa Tướng
+
 document.getElementById("lockButton").onclick = lockSlot;
 
-// Cho phép người dùng chọn ô "tới lượt" khác
+
 document.querySelectorAll(".slot").forEach((slot) => {
   slot.addEventListener("click", function () {
     if (
@@ -357,7 +352,7 @@ document.querySelectorAll(".slot").forEach((slot) => {
   });
 });
 
-// CSS cho ô được chọn và hiệu ứng zoom
+
 const style = document.createElement("style");
 style.innerHTML = `
 .slot.selected {
@@ -373,8 +368,6 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
-
-
 function sendSlotUpdate(slotId, image, type, countdown) {
   const data = {
     slotId: slotId,
@@ -385,23 +378,23 @@ function sendSlotUpdate(slotId, image, type, countdown) {
   socket.send(JSON.stringify(data));
 }
 
-// Thêm một nút để chỉnh sửa tên
+
 const editNameButton = document.getElementById("editNameButton");
-const nameInput = document.getElementById("nameInput"); // Giả sử bạn đã tạo một input với id là nameInput
+const nameInput = document.getElementById("nameInput"); 
 
 editNameButton.onclick = function () {
-  const names = nameInput.value.split(",").map((name) => name.trim()); // Tách tên và xóa khoảng trắng
-  console.log("Names entered:", names); // Ghi lại tên đã nhập để kiểm tra
-  const pickSlots = document.querySelectorAll(".slot[id^='pick']"); // Lấy tất cả các ô slot có id bắt đầu bằng "pick"
+  const names = nameInput.value.split(",").map((name) => name.trim()); 
+  console.log("Names entered:", names); 
+  const pickSlots = document.querySelectorAll(".slot[id^='pick']"); 
 
   pickSlots.forEach((slot, index) => {
-    const playerNameElement = slot.querySelector(".player-name"); // Lấy phần tử player-name
+    const playerNameElement = slot.querySelector(".player-name"); 
     if (playerNameElement) {
-      // Kiểm tra xem phần tử có tồn tại không
+  
       if (index < names.length) {
-        playerNameElement.textContent = names[index] || "Trống"; // Cập nhật tên hoặc ghi "Trống"
+        playerNameElement.textContent = names[index] || "Trống"; 
       } else {
-        playerNameElement.textContent = "Trống"; 
+        playerNameElement.textContent = "Trống";
       }
     }
   });
@@ -409,7 +402,7 @@ editNameButton.onclick = function () {
     type: "updateNames",
     names: names,
   };
-  socket.send(JSON.stringify(data)); 
+  socket.send(JSON.stringify(data));
 };
 
 let firstSelectedSlot = null;
@@ -417,7 +410,7 @@ let secondSelectedSlot = null;
 
 function enableSwapFunctionality() {
   const slots = document.querySelectorAll(".slot");
-  slots.forEach(slot => {
+  slots.forEach((slot) => {
     slot.addEventListener("click", handleSlotSelection);
   });
 }
@@ -429,7 +422,6 @@ function handleSlotSelection(event) {
     firstSelectedSlot = selectedSlot;
     selectedSlot.classList.add("selectedswap");
   } else if (selectedSlot === firstSelectedSlot) {
-    // Double click on the first selected slot to reset
     firstSelectedSlot.classList.remove("selectedswap");
     firstSelectedSlot = null;
   } else if (!secondSelectedSlot) {
@@ -441,16 +433,26 @@ function handleSlotSelection(event) {
 function swapHeroes() {
   if (firstSelectedSlot && secondSelectedSlot) {
     const tempImage = firstSelectedSlot.style.backgroundImage;
-    firstSelectedSlot.style.backgroundImage = secondSelectedSlot.style.backgroundImage;
+    firstSelectedSlot.style.backgroundImage =
+      secondSelectedSlot.style.backgroundImage;
     secondSelectedSlot.style.backgroundImage = tempImage;
 
-    // Extract the image URLs and send them
-    const firstImageUrl = extractImageUrl(firstSelectedSlot.style.backgroundImage);
-    const secondImageUrl = extractImageUrl(secondSelectedSlot.style.backgroundImage);
 
-    sendSwapUpdate(firstSelectedSlot.id, firstImageUrl, secondSelectedSlot.id, secondImageUrl);
+    const firstImageUrl = extractImageUrl(
+      firstSelectedSlot.style.backgroundImage
+    );
+    const secondImageUrl = extractImageUrl(
+      secondSelectedSlot.style.backgroundImage
+    );
 
-    // Reset selection
+    sendSwapUpdate(
+      firstSelectedSlot.id,
+      firstImageUrl,
+      secondSelectedSlot.id,
+      secondImageUrl
+    );
+
+
     firstSelectedSlot.classList.remove("selectedswap");
     firstSelectedSlot = null;
     secondSelectedSlot = null;
@@ -462,15 +464,14 @@ function sendSwapUpdate(firstSlotId, firstImage, secondSlotId, secondImage) {
     type: "swapHeroes",
     swaps: [
       { slotId: firstSlotId, image: firstImage },
-      { slotId: secondSlotId, image: secondImage }
-    ]
+      { slotId: secondSlotId, image: secondImage },
+    ],
   };
   socket.send(JSON.stringify(swapData));
 }
 
 
-// Kích hoạt chức năng đổi tướng khi ô PickB5 bị khóa
-document.getElementById("lockButton").addEventListener("click", function() {
+document.getElementById("lockButton").addEventListener("click", function () {
   const pickB5 = document.getElementById("pickB5");
   if (pickB5.classList.contains("locked")) {
     enableSwapFunctionality();
@@ -478,9 +479,6 @@ document.getElementById("lockButton").addEventListener("click", function() {
 });
 
 function extractImageUrl(urlStyle) {
-  // This regex extracts the URL from the `url("...")` format
+
   return urlStyle.replace(/url\(["']?(.*?)["']?\)/, "$1");
 }
-
-
-
