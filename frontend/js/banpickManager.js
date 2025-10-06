@@ -1,24 +1,16 @@
+// banpickManager.js
 const socket = new WebSocket("ws://localhost:3000/ws");
 
-socket.onopen = () => {
-  // console.log('WebSocket connection established in banpickManager.js');
-};
-
-socket.onmessage = (event) => {
-  // console.log('Message received from server:', event.data);
-};
-
-socket.onerror = (error) => {
-  // console.error('WebSocket error:', error);
-};
-
-socket.onclose = () => {
-  // console.log('WebSocket connection closed');
-};
+socket.onopen = () => {};
+socket.onmessage = (event) => {};
+socket.onerror = (error) => {};
+socket.onclose = () => {};
 
 let selectedHeroImage = "";
 
+/* ===================== HERO LIST (FULL) ===================== */
 const heroes = [
+  { name: "Goverra", image: "images/heroes/Goverra.jpg" },
   { name: "Henio", image: "images/heroes/Henio.jpg" },
   { name: "Bỏ trống", image: "images/heroes/khongcam.png" },
   { name: "Airi", image: "images/heroes/Airi.jpg" },
@@ -146,18 +138,18 @@ const heroes = [
   { name: "Zuka", image: "images/heroes/Zuka.jpg" },
 ];
 
+/* ===================== RENDER HERO GRID ===================== */
 const heroContainer = document.querySelector(".hero-grid");
 
-
 function updateHeroDisplay(filteredHeroes) {
-  heroContainer.innerHTML = ""; 
+  heroContainer.innerHTML = "";
   filteredHeroes.forEach((hero) => {
     const heroDiv = document.createElement("div");
     heroDiv.className = "hero";
     heroDiv.style.backgroundImage = `url(${hero.image})`;
     heroDiv.onclick = () => {
-      selectedHeroImage = hero.image; 
-      selectHero(hero.image); 
+      selectedHeroImage = hero.image;
+      selectHero(hero.image);
     };
     const heroNameDiv = document.createElement("div");
     heroNameDiv.textContent = hero.name;
@@ -166,77 +158,51 @@ function updateHeroDisplay(filteredHeroes) {
     heroContainer.appendChild(heroDiv);
   });
 }
-
-
 updateHeroDisplay(heroes);
 
+/* ===================== HERO SEARCH ===================== */
 const searchInput = document.getElementById("searchInput");
-
-
 searchInput.addEventListener("input", function () {
-  const searchTerm = this.value.toLowerCase(); 
-  const filteredHeroes = heroes.filter(
-    (hero) => hero.name.toLowerCase().includes(searchTerm) 
+  const searchTerm = this.value.toLowerCase();
+  const filteredHeroes = heroes.filter((hero) =>
+    hero.name.toLowerCase().includes(searchTerm)
   );
-
-
   updateHeroDisplay(filteredHeroes);
 });
 
+/* ===================== PICK ORDER & COUNTDOWN ===================== */
 const order = [
-  "banA1",
-  "banB1",
-  "banA2",
-  "banB2",
-  "pickA1",
-  "pickB1",
-  "pickB2",
-  "pickA2",
-  "pickA3",
-  "pickB3",
-  "banB3",
-  "banA3",
-  "banB4",
-  "banA4",
-  "pickB4",
-  "pickA4",
-  "pickA5",
-  "pickB5",
+  "banA1", "banB1", "banA2", "banB2",
+  "pickA1", "pickB1", "pickB2", "pickA2",
+  "pickA3", "pickB3", "banB3", "banA3",
+  "banB4", "banA4", "pickB4", "pickA4",
+  "pickA5", "pickB5",
 ];
-
 let currentIndex = 0;
 
-document.getElementById("startButton").onclick = function () {
-  currentIndex = 0; 
-  highlightNextSlot(); 
-  startCountdown();
-
-  this.disabled = true;
-
-  const data = {
-    countdown: "restartCountdown",
-  };
-  socket.send(JSON.stringify(data));
-};
-
-
-let countdown; 
-let timeLeft = 60; 
+let countdown;
+let timeLeft = 60;
 const countdownDisplay = document.getElementById("countdown");
 
 function startCountdown() {
-  clearInterval(countdown); 
+  clearInterval(countdown);
   timeLeft = 60;
-  countdownDisplay.textContent = timeLeft; 
-
+  countdownDisplay.textContent = timeLeft;
   countdown = setInterval(() => {
-    timeLeft--; 
-    countdownDisplay.textContent = timeLeft; 
-    if (timeLeft <= 0) {
-      clearInterval(countdown); 
-    }
-  }, 1000); 
+    timeLeft--;
+    countdownDisplay.textContent = timeLeft;
+    if (timeLeft <= 0) clearInterval(countdown);
+  }, 1000);
 }
+
+/* ===================== BAN/PICK FLOW ===================== */
+document.getElementById("startButton").onclick = function () {
+  currentIndex = 0;
+  highlightNextSlot();
+  startCountdown();
+  this.disabled = true;
+  socket.send(JSON.stringify({ countdown: "restartCountdown" }));
+};
 
 function highlightNextSlot() {
   if (currentIndex < order.length) {
@@ -245,12 +211,9 @@ function highlightNextSlot() {
     slot.classList.add("active-ban");
 
     const selectedSlot = document.querySelector(".slot.selected");
-    if (selectedSlot) {
-      selectedSlot.classList.remove("selected");
-    }
+    if (selectedSlot) selectedSlot.classList.remove("selected");
     slot.classList.add("selected");
 
-  
     sendSlotUpdate(slotId, slot.style.backgroundImage, "banActive");
 
     if (slotId === "pickB1" || slotId === "pickA2" || slotId === "pickA4") {
@@ -265,12 +228,10 @@ function highlightNextSlot() {
 }
 
 function selectHero(image) {
-
   const selectedSlot = document.querySelector(".slot.selected");
   if (selectedSlot && !selectedSlot.classList.contains("locked")) {
-
     selectedSlot.style.backgroundImage = `url(${image})`;
-    selectedSlot.dataset.heroImage = image; 
+    selectedSlot.dataset.heroImage = image;
     sendSlotUpdate(selectedSlot.id, image, "select");
   }
 }
@@ -278,13 +239,9 @@ function selectHero(image) {
 function lockSlot() {
   const selectedSlots = document.querySelectorAll(".slot.active-ban");
   let allFilled = true;
-
-  selectedSlots.forEach((selectedSlot) => {
-    if (!selectedSlot.dataset.heroImage) {
-      allFilled = false;
-    }
+  selectedSlots.forEach((s) => {
+    if (!s.dataset.heroImage) allFilled = false;
   });
-
   if (!allFilled) {
     document.getElementById("error-message").innerText =
       "Vui lòng pick tướng vào tất cả các ô trước khi khóa!";
@@ -293,118 +250,490 @@ function lockSlot() {
 
   if (selectedSlots.length > 0) {
     document.getElementById("error-message").innerText = "";
-
     startCountdown();
 
     const lockSound = document.getElementById("lockSound");
-    lockSound.play(); 
+    lockSound && lockSound.play();
+    socket.send(JSON.stringify({ type: "playSound", sound: "PickEffect.mp3" }));
 
-    
-    const data = {
-      type: "playSound",
-      sound: "PickEffect.mp3", 
-      
-    };
-    socket.send(JSON.stringify(data)); 
+    selectedSlots.forEach((s) => {
+      s.classList.add("locked");
+      s.classList.remove("active-ban");
+      const heroImage = s.dataset.heroImage;
+      s.style.backgroundImage = `url(${heroImage})`;
 
-    selectedSlots.forEach((selectedSlot) => {
-      if (selectedSlot) {
-        selectedSlot.classList.add("locked");
-        selectedSlot.classList.remove("active-ban");
-        const heroImage = selectedSlot.dataset.heroImage;
-        selectedSlot.style.backgroundImage = `url(${heroImage})`;
-
-
-        const logo = selectedSlot.querySelector(".lane-logo");
-        const playerName = selectedSlot.querySelector(".player-name");
-        if (logo) logo.style.display = "none"; 
-
-        if (selectedSlot.id.startsWith("pick")) {
-          selectedSlot.classList.add("zoom-effect");
-          selectedSlot.style.filter = "none";
-        } else {
-          selectedSlot.style.filter = "grayscale(100%)";
-        }
-
-        sendSlotUpdate(selectedSlot.id, heroImage, "lock", "restartCountdown");
+      const logo = s.querySelector(".lane-logo");
+      if (logo) logo.style.display = "none";
+      if (s.id.startsWith("pick")) {
+        s.classList.add("zoom-effect");
+        s.style.filter = "none";
+      } else {
+        s.style.filter = "grayscale(100%)";
       }
+
+      sendSlotUpdate(s.id, heroImage, "lock", "restartCountdown");
     });
     currentIndex += selectedSlots.length;
     highlightNextSlot();
   }
 }
-
-
 document.getElementById("lockButton").onclick = lockSlot;
 
+function sendSlotUpdate(slotId, image, type, countdown) {
+  socket.send(JSON.stringify({ slotId, image, type, countdown }));
+}
 
+/* ===================== CLICK SELECT SLOT ===================== */
 document.querySelectorAll(".slot").forEach((slot) => {
   slot.addEventListener("click", function () {
-    if (
-      this.classList.contains("active-ban") &&
-      !this.classList.contains("locked")
-    ) {
-      document
-        .querySelectorAll(".slot.selected")
-        .forEach((s) => s.classList.remove("selected"));
+    if (this.classList.contains("active-ban") && !this.classList.contains("locked")) {
+      document.querySelectorAll(".slot.selected").forEach((s) => s.classList.remove("selected"));
       this.classList.add("selected");
     }
   });
 });
 
-
+/* ===================== SELECTED/ZOOM CSS (INLINE) ===================== */
 const style = document.createElement("style");
 style.innerHTML = `
-.slot.selected {
-  background-color: rgba(255, 255, 0, 0.5); /* Màu nền khác biệt cho ô được chọn */
-}
-.slot.zoom-effect {
-  animation: zoomInOut 0.7s ease-in-out; /* Tăng thời gian và độ lớn của hiệu ứng zoom */
-}
-@keyframes zoomInOut {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); } /* Tăng độ lớn của hiệu ứng zoom */
-}
+.slot.selected { background-color: rgba(255, 255, 0, 0.5); }
+.slot.zoom-effect { animation: zoomInOut 0.7s ease-in-out; }
+@keyframes zoomInOut { 0%, 100% { transform: scale(1);} 50% { transform: scale(1.2);} }
 `;
 document.head.appendChild(style);
 
-function sendSlotUpdate(slotId, image, type, countdown) {
-  const data = {
-    slotId: slotId,
-    image: image,
-    type: type,
-    countdown: countdown,
-  };
-  socket.send(JSON.stringify(data));
-}
-
-
-const editNameButton = document.getElementById("editNameButton");
-const nameInput = document.getElementById("nameInput"); 
-
-editNameButton.onclick = function () {
-  const names = nameInput.value.split(",").map((name) => name.trim()); 
-  console.log("Names entered:", names); 
-  const pickSlots = document.querySelectorAll(".slot[id^='pick']"); 
-
+/* ===================== EDIT PLAYER NAMES ===================== */
+document.getElementById("editNameButton").onclick = function () {
+  const names = document.getElementById("nameInput").value
+    .split(",")
+    .map((n) => n.trim());
+  const pickSlots = document.querySelectorAll(".slot[id^='pick']");
   pickSlots.forEach((slot, index) => {
-    const playerNameElement = slot.querySelector(".player-name"); 
-    if (playerNameElement) {
-  
-      if (index < names.length) {
-        playerNameElement.textContent = names[index] || "Trống"; 
-      } else {
-        playerNameElement.textContent = "Trống";
-      }
-    }
+    const playerNameElement = slot.querySelector(".player-name");
+    if (playerNameElement) playerNameElement.textContent = names[index] || "Trống";
   });
-  const data = {
-    type: "updateNames",
-    names: names,
-  };
-  socket.send(JSON.stringify(data));
+  socket.send(JSON.stringify({ type: "updateNames", names }));
 };
 
+/* ===================== TEAM INFO (SAVE / RESET / LOAD) ===================== */
+const handleSaveTeamInfo = async () => {
+  const teamAName = document.getElementById("teamAName").value.trim();
+  const teamBName = document.getElementById("teamBName").value.trim();
+  const scoreA = parseInt(document.getElementById("scoreA").value) || 0;
+  const scoreB = parseInt(document.getElementById("scoreB").value) || 0;
+
+  if (!teamAName || !teamBName) {
+    showTeamInfoMessage("Vui lòng nhập tên cho cả hai đội", "error");
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:3000/api/save-team-info", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamAName, teamBName, scoreA, scoreB }),
+    });
+    if (res.ok) {
+      showTeamInfoMessage("Thông tin đội đã được lưu thành công!", "success");
+    } else {
+      const data = await res.json();
+      showTeamInfoMessage(data.message || "Không thể lưu thông tin đội", "error");
+    }
+  } catch (err) {
+    showTeamInfoMessage("Đã có lỗi xảy ra khi lưu thông tin đội", "error");
+  }
+};
+
+const loadTeamInfoFromFiles = async () => {
+  try {
+    const res = await fetch("http://localhost:3000/api/get-team-info");
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById("teamAName").value = data.teamAName;
+      document.getElementById("teamBName").value = data.teamBName;
+      document.getElementById("scoreA").value = data.scoreA;
+      document.getElementById("scoreB").value = data.scoreB;
+    }
+  } catch (err) {
+    console.error("Error loading team info:", err);
+  }
+};
+
+const handleResetTeamInfo = async () => {
+  document.getElementById("teamAName").value = "team xanh";
+  document.getElementById("teamBName").value = "team đỏ";
+  document.getElementById("scoreA").value = "0";
+  document.getElementById("scoreB").value = "0";
+  try {
+    await fetch("http://localhost:3000/api/save-team-info", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        teamAName: "team xanh",
+        teamBName: "team đỏ",
+        scoreA: 0,
+        scoreB: 0,
+      }),
+    });
+    showTeamInfoMessage("Đã reset về giá trị mặc định và lưu vào file!", "success");
+  } catch (err) {
+    showTeamInfoMessage("Reset thành công nhưng có lỗi khi lưu file", "error");
+  }
+};
+
+const showTeamInfoMessage = (message, type) => {
+  const div = document.getElementById("teaminfo-message");
+  if (!div) return;
+  div.textContent = message;
+  div.className = type;
+  setTimeout(() => {
+    div.textContent = "";
+    div.className = "";
+  }, 3000);
+};
+
+const handleSwapTeamInfo = async () => {
+  // Get current values
+  const teamAName = document.getElementById("teamAName").value.trim();
+  const teamBName = document.getElementById("teamBName").value.trim();
+  const scoreA = parseInt(document.getElementById("scoreA").value) || 0;
+  const scoreB = parseInt(document.getElementById("scoreB").value) || 0;
+  
+  // Swap values in the input fields
+  document.getElementById("teamAName").value = teamBName;
+  document.getElementById("teamBName").value = teamAName;
+  document.getElementById("scoreA").value = scoreB;
+  document.getElementById("scoreB").value = scoreA;
+  
+  // Swap player names in the pick slots (Team A players go to Team B slots and vice versa)
+  const playerNames = [];
+  const pickSlots = document.querySelectorAll(".slot[id^='pick']");
+  pickSlots.forEach((slot, index) => {
+    const playerNameElement = slot.querySelector(".player-name");
+    if (playerNameElement) {
+      playerNames.push(playerNameElement.textContent || "");
+    }
+  });
+  
+  // Swap player names (first 5 for team A, next 5 for team B)
+  if (playerNames.length >= 10) {
+    for (let i = 0; i < 5; i++) {
+      const slotA = document.getElementById(`pickA${i + 1}`);
+      const slotB = document.getElementById(`pickB${i + 1}`);
+      
+      if (slotA && slotB) {
+        const playerNameElementA = slotA.querySelector(".player-name");
+        const playerNameElementB = slotB.querySelector(".player-name");
+        
+        if (playerNameElementA && playerNameElementB) {
+          playerNameElementA.textContent = playerNames[i + 5]; // Team B player name
+          playerNameElementB.textContent = playerNames[i];     // Team A player name
+        }
+      }
+    }
+    
+    // Update player names via socket (send swapped names)
+    const swappedNames = [];
+    for (let i = 0; i < 5; i++) {
+      swappedNames.push(playerNames[i + 5]); // Team B players first
+    }
+    for (let i = 0; i < 5; i++) {
+      swappedNames.push(playerNames[i]);     // Then Team A players
+    }
+    
+    // Send update via socket (ignore if fails)
+    try {
+      socket.send(JSON.stringify({ type: "updateNames", names: swappedNames }));
+    } catch (e) {
+      // Silently ignore socket errors
+    }
+  }
+  
+  // Note: We don't swap the current picks in the pick slots because they are positional
+  // The pick slots (pickA1, pickA2, etc.) remain in their positions
+  // What changes is the team association, not the slot positions
+  
+  // Swap previous matches data in memory and for OBS views
+  if (window.previousMatches && window.previousMatches.length > 0) {
+    // Create swapped previous matches data
+    const swappedPreviousMatches = window.previousMatches.map(match => ({
+      picksA: match.picksB, // Swap A and B
+      picksB: match.picksA,
+      hasData: match.hasData
+    }));
+    
+    // Update the window.previousMatches array with swapped data
+    window.previousMatches = swappedPreviousMatches;
+    
+    // Update the display in the manager view
+    displayPreviousMatches();
+    
+    // Send swapped previous picks data via socket
+    try {
+      socket.send(JSON.stringify({ 
+        type: "previousPicks", 
+        previousMatches: swappedPreviousMatches
+      }));
+    } catch (e) {
+      // Silently ignore socket errors
+    }
+  }
+  
+  // Save swapped team info to files (ignore if fails)
+  try {
+    await fetch("http://localhost:3000/api/save-team-info", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        teamAName: teamBName, 
+        teamBName: teamAName, 
+        scoreA: scoreB, 
+        scoreB: scoreA 
+      }),
+    });
+  } catch (err) {
+    // Silently ignore file save errors
+  }
+  
+  // Show success message
+  showTeamInfoMessage("Đã đổi thông tin đội!", "success");
+};
+
+/* ===================== PREVIOUS PICKS (RAM ONLY) ===================== */
+window.previousMatches = [];
+
+const handleNextMatch = () => {
+  const match = getCurrentMatchData();
+  if (!match.hasData) {
+    alert("Chưa có dữ liệu trận để lưu!");
+    return;
+  }
+  savePreviousMatch(match);
+  resetCurrentMatch();
+  displayPreviousMatches();
+  
+  // Send all previous picks data via socket
+  socket.send(JSON.stringify({ 
+    type: "previousPicks", 
+    previousMatches: window.previousMatches
+  }));
+  
+  alert("Trận đã được lưu! Bắt đầu ván mới.");
+};
+
+const getCurrentMatchData = () => {
+  const picksA = [];
+  const picksB = [];
+  let hasData = false;
+
+  for (let i = 1; i <= 5; i++) {
+    const slotA = document.getElementById(`pickA${i}`);
+    const slotB = document.getElementById(`pickB${i}`);
+    if (slotA && slotA.dataset.heroImage) {
+      picksA.push(slotA.dataset.heroImage);
+      hasData = true;
+    }
+    if (slotB && slotB.dataset.heroImage) {
+      picksB.push(slotB.dataset.heroImage);
+      hasData = true;
+    }
+  }
+
+  return { picksA, picksB, hasData };
+};
+
+const savePreviousMatch = (matchData) => {
+  window.previousMatches.push(matchData);
+  if (window.previousMatches.length > 7) {
+    window.previousMatches = window.previousMatches.slice(-7);
+  }
+};
+
+const resetCurrentMatch = () => {
+  // reset 10 pick slots
+  for (let i = 1; i <= 5; i++) {
+    ["A", "B"].forEach((team) => {
+      const slot = document.getElementById(`pick${team}${i}`);
+      if (slot) {
+        slot.style.backgroundImage = "";
+        slot.dataset.heroImage = "";
+        // giữ class slot/pick/teamA|teamB
+        slot.classList.remove("locked", "active-ban", "selected", "selectedswap", "zoom-effect");
+        const logo = slot.querySelector(".lane-logo");
+        if (logo) logo.style.display = "block";
+        slot.style.filter = "";
+      }
+    });
+  }
+  // reset 8 ban slots
+  for (let i = 1; i <= 4; i++) {
+    ["A", "B"].forEach((team) => {
+      const slot = document.getElementById(`ban${team}${i}`);
+      if (slot) {
+        slot.style.backgroundImage = "";
+        slot.dataset.heroImage = "";
+        slot.classList.remove("locked", "active-ban", "selected");
+        slot.style.filter = "";
+      }
+    });
+  }
+  currentIndex = 0;
+  clearInterval(countdown);
+  timeLeft = 60;
+  countdownDisplay.textContent = timeLeft;
+  document.getElementById("startButton").disabled = false;
+  document.getElementById("error-message").innerText = "";
+};
+
+const displayPreviousMatches = () => {
+  const container = document.getElementById("previousMatchesContainer");
+  const matches = window.previousMatches || [];
+
+  if (matches.length === 0) {
+    container.innerHTML = '<div class="no-previous">Chưa có trận nào</div>';
+    return;
+  }
+
+  container.innerHTML = "";
+  matches.forEach((match, index) => {
+    const matchDiv = document.createElement("div");
+    matchDiv.className = "previous-match";
+    matchDiv.innerHTML = `
+      <div class="match-title">Trận ${index + 1}</div>
+      <div class="previous-teams">
+        <div class="previous-team team-a">
+          <div class="previous-picks-grid">
+            ${match.picksA
+              .map((p) => `<div class="previous-pick" style="background-image: url(${p})"></div>`)
+              .join("")}
+          </div>
+        </div>
+        <div class="previous-team team-b">
+          <div class="previous-picks-grid">
+            ${match.picksB
+              .map((p) => `<div class="previous-pick" style="background-image: url(${p})"></div>`)
+              .join("")}
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(matchDiv);
+  });
+};
+
+const handleResetPreviousMatches = () => {
+  // Clear the previous matches array
+  window.previousMatches = [];
+  
+  // Reset the current match display
+  resetCurrentMatch();
+  
+  // Update the previous matches display
+  displayPreviousMatches();
+  
+  // Send reset message to OBS views
+  socket.send(JSON.stringify({ 
+    type: "resetPreviousPicks"
+  }));
+  
+  alert("Đã reset toàn bộ dữ liệu previous picks!");
+};
+
+/* ===================== AUTOFILL (TEST) ===================== */
+const handleAutoFill = () => {
+  // Lấy 18 ảnh khác nhau từ danh sách (nếu thiếu sẽ lặp lại)
+  const pool = heroes.map(h => h.image).filter(p => p && !p.includes("khongcam"));
+  const pickList = [];
+  let idx = 0;
+  const take = (n) => {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      out.push(pool[idx % pool.length]);
+      idx++;
+    }
+    return out;
+  };
+
+  // 10 pick + 8 ban
+  const picks = take(10);
+  const bans  = take(8);
+
+  // Fill picks
+  let p = 0;
+  for (let i = 1; i <= 5; i++) {
+    const slotA = document.getElementById(`pickA${i}`);
+    const slotB = document.getElementById(`pickB${i}`);
+    if (slotA) {
+      slotA.style.backgroundImage = `url(${picks[p]})`;
+      slotA.dataset.heroImage = picks[p];
+      slotA.classList.add("locked");
+      const logo = slotA.querySelector(".lane-logo");
+      if (logo) logo.style.display = "none";
+      slotA.style.filter = "none";
+      p++;
+    }
+    if (slotB) {
+      slotB.style.backgroundImage = `url(${picks[p]})`;
+      slotB.dataset.heroImage = picks[p];
+      slotB.classList.add("locked");
+      const logo = slotB.querySelector(".lane-logo");
+      if (logo) logo.style.display = "none";
+      slotB.style.filter = "none";
+      p++;
+    }
+  }
+
+  // Fill bans
+  let b = 0;
+  for (let i = 1; i <= 4; i++) {
+    const banA = document.getElementById(`banA${i}`);
+    const banB = document.getElementById(`banB${i}`);
+    if (banA) {
+      banA.style.backgroundImage = `url(${bans[b]})`;
+      banA.dataset.heroImage = bans[b];
+      banA.classList.add("locked");
+      banA.style.filter = "grayscale(100%)";
+      b++;
+    }
+    if (banB) {
+      banB.style.backgroundImage = `url(${bans[b]})`;
+      banB.dataset.heroImage = bans[b];
+      banB.classList.add("locked");
+      banB.style.filter = "grayscale(100%)";
+      b++;
+    }
+  }
+
+  alert("Đã auto fill đầy đủ 18 ô để test nhanh!");
+};
+
+/* ===================== INIT ===================== */
+document.addEventListener("DOMContentLoaded", function () {
+  const saveTeamInfoButton = document.getElementById("saveTeamInfoButton");
+  if (saveTeamInfoButton) saveTeamInfoButton.addEventListener("click", handleSaveTeamInfo);
+
+  const swapTeamInfoButton = document.getElementById("swapTeamInfoButton");
+  if (swapTeamInfoButton) swapTeamInfoButton.addEventListener("click", handleSwapTeamInfo);
+
+  const resetTeamInfoButton = document.getElementById("resetTeamInfoButton");
+  if (resetTeamInfoButton) resetTeamInfoButton.addEventListener("click", handleResetTeamInfo);
+
+  const nextMatchButton = document.getElementById("nextMatchButton");
+  if (nextMatchButton) nextMatchButton.addEventListener("click", handleNextMatch);
+
+  const resetPreviousButton = document.getElementById("resetPreviousButton");
+  if (resetPreviousButton) resetPreviousButton.addEventListener("click", handleResetPreviousMatches);
+
+  const autoFillButton = document.getElementById("autoFillButton");
+  if (autoFillButton) autoFillButton.addEventListener("click", handleAutoFill);
+
+  // Hiển thị previous matches rỗng lúc đầu; Load team info từ file txt
+  window.previousMatches = [];
+  displayPreviousMatches();
+  loadTeamInfoFromFiles();
+});
+
+/* ================= SWAP HERO ================= */
 let firstSelectedSlot = null;
 let secondSelectedSlot = null;
 
@@ -469,8 +798,6 @@ function sendSwapUpdate(firstSlotId, firstImage, secondSlotId, secondImage) {
   };
   socket.send(JSON.stringify(swapData));
 }
-
-
 document.getElementById("lockButton").addEventListener("click", function () {
   const pickB5 = document.getElementById("pickB5");
   if (pickB5.classList.contains("locked")) {

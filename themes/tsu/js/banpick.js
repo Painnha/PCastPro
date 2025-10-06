@@ -54,6 +54,12 @@ function handleData(data) {
         case 'swapHeroes':
             data.swaps.forEach(swap => updateSwapImage(swap.slotId, swap.image));
             break;
+        case 'previousPicks':
+            updatePreviousPicks(data);
+            break;
+        case 'resetPreviousPicks':
+            resetPreviousPicksDisplay();
+            break;
 
             
         default:
@@ -155,5 +161,86 @@ function updateSwapImage(slotId, newImage) {
     const heroImageDiv = slot.querySelector('.heroImage');
     if (heroImageDiv) {
         heroImageDiv.style.backgroundImage = `url(/${newImage})`;
+    }
+}
+// Function to reset previous picks display
+function resetPreviousPicksDisplay() {
+    // Check if we're on PreviousListA or PreviousListB page
+    if (window.location.pathname.includes('PreviousListA')) {
+        const container = document.getElementById('previousContainerA');
+        if (container) {
+            container.innerHTML = '';
+        }
+    } else if (window.location.pathname.includes('PreviousListB')) {
+        const container = document.getElementById('previousContainerB');
+        if (container) {
+            container.innerHTML = '';
+        }
+    }
+}
+
+// Function to update previous picks display
+function updatePreviousPicks(data) {
+    // Check if we're on PreviousListA or PreviousListB page
+    if (window.location.pathname.includes('PreviousListA')) {
+        const container = document.getElementById('previousContainerA');
+        if (container) {
+            // Display all previous matches for Team A
+            let html = '';
+            // If we have previous matches data, display them
+            if (data.previousMatches && data.previousMatches.length > 0) {
+                data.previousMatches.forEach((match, index) => {
+                    html += `
+                        <div class="previous-match">
+                            <div class="match-title">G${index + 1}</div>
+                            <div class="previous-picks-grid">
+                                ${match.picksA.map(pick => `<div class="previous-pick" style="background-image: url(/${pick})"></div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                // Fallback to single match data
+                html = `
+                    <div class="previous-match">
+                        <div class="match-title">Ván Trước</div>
+                        <div class="previous-picks-grid">
+                            ${data.picksA.map(pick => `<div class="previous-pick" style="background-image: url(/${pick})"></div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+    } else if (window.location.pathname.includes('PreviousListB')) {
+        const container = document.getElementById('previousContainerB');
+        if (container) {
+            // Display all previous matches for Team B
+            let html = '';
+            // If we have previous matches data, display them
+            if (data.previousMatches && data.previousMatches.length > 0) {
+                data.previousMatches.forEach((match, index) => {
+                    html += `
+                        <div class="previous-match">
+                            <div class="match-title">G${index + 1}</div>
+                            <div class="previous-picks-grid">
+                                ${match.picksB.map(pick => `<div class="previous-pick" style="background-image: url(/${pick})"></div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                // Fallback to single match data
+                html = `
+                    <div class="previous-match">
+                        <div class="match-title">Ván Trước</div>
+                        <div class="previous-picks-grid">
+                            ${data.picksB.map(pick => `<div class="previous-pick" style="background-image: url(/${pick})"></div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
     }
 }

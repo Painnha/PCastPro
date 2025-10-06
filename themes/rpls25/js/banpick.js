@@ -1,5 +1,8 @@
 const socket = new WebSocket('ws://localhost:3000/ws');
 
+socket.onopen = () => {
+    socket.send(JSON.stringify({ type: 'connected', message: 'Observer connected' }));
+};
 
 
 
@@ -48,7 +51,13 @@ function handleData(data) {
         case 'swapHeroes':
             data.swaps.forEach(swap => updateSwapImage(swap.slotId, swap.image));
             break;
-        case 'banActive':
+       case 'previousPicks':
+            updatePreviousPicks(data);
+            break;
+        case 'resetPreviousPicks':
+            resetPreviousPicksDisplay();
+            break;
+            
        
         default:
             updateSlot(data);
@@ -158,18 +167,102 @@ function updateSwapImage(slotId, newImage) {
         return;
     }
 
+    // Check if there's a heroImage div inside the slot (OBS views)
     const heroImageDiv = slot.querySelector('.heroImage');
     if (heroImageDiv) {
-        // Đảm bảo URL được format đúng
-        const imageUrl = newImage.startsWith('/') ? newImage : `/${newImage}`;
-        heroImageDiv.style.backgroundImage = `url(${imageUrl})`;
-        
-        // Cập nhật các class liên quan
+        // For OBS views with heroImage div
+        heroImageDiv.style.backgroundImage = newImage ? `url(/${newImage})` : '';
+                // Cập nhật các class liên quan
         slot.classList.add('has-hero');
         heroImageDiv.style.backgroundSize = 'cover';
         heroImageDiv.style.backgroundPosition = 'center';
         heroImageDiv.style.width = '100%';
         heroImageDiv.style.height = '100%';
+    } else {
+        // For manager view (index.html) where slot itself has the background image
+        slot.style.backgroundImage = newImage ? `url(${newImage})` : '';
     }
 }
 
+
+// Function to reset previous picks display
+function resetPreviousPicksDisplay() {
+    // Check if we're on PreviousListA or PreviousListB page
+    if (window.location.pathname.includes('PreviousListA')) {
+        const container = document.getElementById('previousContainerA');
+        if (container) {
+            container.innerHTML = '';
+        }
+    } else if (window.location.pathname.includes('PreviousListB')) {
+        const container = document.getElementById('previousContainerB');
+        if (container) {
+            container.innerHTML = '';
+        }
+    }
+}
+
+// Function to update previous picks display
+function updatePreviousPicks(data) {
+    // Check if we're on PreviousListA or PreviousListB page
+    if (window.location.pathname.includes('PreviousListA')) {
+        const container = document.getElementById('previousContainerA');
+        if (container) {
+            // Display all previous matches for Team A
+            let html = '';
+            // If we have previous matches data, display them
+            if (data.previousMatches && data.previousMatches.length > 0) {
+                data.previousMatches.forEach((match, index) => {
+                    html += `
+                        <div class="previous-match">
+                            <div class="match-title">G${index + 1}</div>
+                            <div class="previous-picks-grid">
+                                ${match.picksA.map(pick => `<div class="previous-pick" style="background-image: url(/${pick})"></div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                // Fallback to single match data
+                html = `
+                    <div class="previous-match">
+                        <div class="match-title">Ván Trước</div>
+                        <div class="previous-picks-grid">
+                            ${data.picksA.map(pick => `<div class="previous-pick" style="background-image: url(/${pick})"></div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+    } else if (window.location.pathname.includes('PreviousListB')) {
+        const container = document.getElementById('previousContainerB');
+        if (container) {
+            // Display all previous matches for Team B
+            let html = '';
+            // If we have previous matches data, display them
+            if (data.previousMatches && data.previousMatches.length > 0) {
+                data.previousMatches.forEach((match, index) => {
+                    html += `
+                        <div class="previous-match">
+                            <div class="match-title">G${index + 1}</div>
+                            <div class="previous-picks-grid">
+                                ${match.picksB.map(pick => `<div class="previous-pick" style="background-image: url(/${pick})"></div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                // Fallback to single match data
+                html = `
+                    <div class="previous-match">
+                        <div class="match-title">Ván Trước</div>
+                        <div class="previous-picks-grid">
+                            ${data.picksB.map(pick => `<div class="previous-pick" style="background-image: url(/${pick})"></div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+    }
+}

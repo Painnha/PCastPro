@@ -15,6 +15,6 @@ const themeSchema = new mongoose.Schema({
 });
 
 // Indexes
-themeSchema.index({ themeID: 1 });
+// Note: themeID index is automatically created by unique: true
 
 module.exports = mongoose.model('Theme', themeSchema);

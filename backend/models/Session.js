@@ -58,9 +58,8 @@ const sessionSchema = new mongoose.Schema({
 sessionSchema.index({ userId: 1, isActive: 1 });
 sessionSchema.index({ email: 1, isActive: 1 });
 sessionSchema.index({ deviceId: 1, isActive: 1 });
-sessionSchema.index({ lastActivity: 1 });
 
-// TTL index for automatic cleanup of old sessions
+// TTL index for automatic cleanup of old sessions (only one lastActivity index needed)
 sessionSchema.index({ lastActivity: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 }); // 7 days
 
 module.exports = mongoose.model('Session', sessionSchema);

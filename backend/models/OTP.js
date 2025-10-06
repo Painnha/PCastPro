@@ -41,7 +41,7 @@ const otpSchema = new mongoose.Schema({
 });
 
 // Compound index for efficient queries
-otpSchema.index({ email: 1 });
+// Note: email index is automatically created by index: true in schema
 otpSchema.index({ createdAt: 1 }, { expireAfterSeconds: 300 }); // Auto delete after 5 minutes
 
 module.exports = mongoose.model('OTP', otpSchema);

@@ -8,6 +8,45 @@ body {
     background-color: black;
 }
 
+/* Previous Picks Styles */
+.previous-container {
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    align-items: flex-start;
+    justify-content: start;
+    width: 100%;
+    height: 100%;
+}
+
+.previous-match {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+}
+
+.match-title {
+    font-family: 'SVNOMNY';
+    color: white;
+    text-align: center;
+    font-size: 24px;
+    text-transform: uppercase;
+}
+
+.previous-picks-grid {
+    display: flex;
+    gap: 5px;
+}
+
+.previous-pick {
+    width: 50px;
+    height: 50px;
+    background-size: cover;
+    background-position: top;
+
+}
+
 /* Định nghĩa kiểu chung */
 .slot {
     background-size: cover;

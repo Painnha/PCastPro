@@ -1,134 +1,203 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ban/Pick Manager</title>
-    <link rel="stylesheet" href="css/styleManager.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/styleManager.css" />
   </head>
   <body>
     <div class="container">
-      <!-- User info and logout section -->
+      <!-- Header (user-section) -->
       <div class="user-section">
-        <span id="userInfo">Đang tải thông tin...</span>
+        <span id="userInfo">Xin chào, triphong2002</span>
         <div class="theme-section">
           <label for="themeSelect">Theme:</label>
           <select id="themeSelect" class="theme-dropdown">
+            <option value="apl2025">Apl2025</option>
           </select>
         </div>
         <button id="logoutButton">Đăng xuất</button>
       </div>
-      
-       <div class="section-banpick">
 
-      <div class="section" >
-        <h2 style="color: blue;">Team xanh</h2>
-        <div class="slots">
-          <div class="slot ban" id="banA1"></div>
-          <div class="slot ban" id="banA2"></div>
-          <div class="slot ban" id="banA3"></div>
-          <div class="slot ban" id="banA4"></div>
-        </div>
-        <div class="slots">
+      <!-- Banpick Wrapper -->
+      <div class="banpick-wrapper">
+        <!-- Left: Banpick + Previous -->
+        <div class="banpick-left">
+          <!-- Banpick Container -->
+          <div class="banpick-container">
+            <!-- Team A -->
+            <div class="section left">
+              <h2 class="team-title blue">Đội A</h2>
 
-            <div class="slot pick teamA" id="pickA1">
-              <img src="images/logoLane/Top.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
+              <!-- Objectives -->
+              <div class="objectives">
+                <button class="obj-button">Rồng <span class="badge">1:30</span></button>
+                <button class="obj-button">Tà thần <span class="badge">1:30</span></button>
+              </div>
+
+              <!-- Bans -->
+              <div class="slots">
+                <div class="slot ban" id="banA1"></div>
+                <div class="slot ban" id="banA2"></div>
+                <div class="slot ban" id="banA3"></div>
+                <div class="slot ban" id="banA4"></div>
+              </div>
+
+              <!-- Picks -->
+              <div class="slots">
+                <div class="slot pick teamA" id="pickA1">
+                  <img src="images/logoLane/Top.svg" class="lane-logo" alt="Top" />
+                  <div class="player-name"></div>
+                </div>
+                <div class="slot pick teamA" id="pickA2">
+                  <img src="images/logoLane/rung.svg" class="lane-logo" alt="Jungle" />
+                  <div class="player-name"></div>
+                </div>
+                <div class="slot pick teamA" id="pickA3">
+                  <img src="images/logoLane/Mid.svg" class="lane-logo" alt="Mid" />
+                  <div class="player-name"></div>
+                </div>
+                <div class="slot pick teamA" id="pickA4">
+                  <img src="images/logoLane/ad.svg" class="lane-logo" alt="AD" />
+                  <div class="player-name"></div>
+                </div>
+                <div class="slot pick teamA" id="pickA5">
+                  <img src="images/logoLane/support.svg" class="lane-logo" alt="Support" />
+                  <div class="player-name"></div>
+                </div>
+              </div>
             </div>
-            <div class="slot pick teamA" id="pickA2">
-              <img src="images/logoLane/rung.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
+
+            <!-- Countdown giữa -->
+            <div id="countdown">60</div>
+
+            <!-- Team B -->
+            <div class="section right">
+              <h2 class="team-title red">Đội B</h2>
+
+              <!-- Objectives -->
+              <div class="objectives">
+                <button class="obj-button">Rồng <span class="badge">1:30</span></button>
+                <button class="obj-button">Tà thần <span class="badge">1:30</span></button>
+              </div>
+
+              <!-- Bans -->
+              <div class="slots">
+                <div class="slot ban" id="banB1"></div>
+                <div class="slot ban" id="banB2"></div>
+                <div class="slot ban" id="banB3"></div>
+                <div class="slot ban" id="banB4"></div>
+              </div>
+
+              <!-- Picks -->
+              <div class="slots">
+                <div class="slot pick teamB" id="pickB1">
+                  <img src="images/logoLane/support.svg" class="lane-logo" alt="Support" />
+                  <div class="player-name"></div>
+                </div>
+                <div class="slot pick teamB" id="pickB2">
+                  <img src="images/logoLane/ad.svg" class="lane-logo" alt="AD" />
+                  <div class="player-name"></div>
+                </div>
+                <div class="slot pick teamB" id="pickB3">
+                  <img src="images/logoLane/Mid.svg" class="lane-logo" alt="Mid" />
+                  <div class="player-name"></div>
+                </div>
+                <div class="slot pick teamB" id="pickB4">
+                  <img src="images/logoLane/rung.svg" class="lane-logo" alt="Jungle" />
+                  <div class="player-name"></div>
+                </div>
+                <div class="slot pick teamB" id="pickB5">
+                  <img src="images/logoLane/Top.svg" class="lane-logo" alt="Top" />
+                  <div class="player-name"></div>
+                </div>
+              </div>
             </div>
-            <div class="slot pick teamA" id="pickA3">
-              <img src="images/logoLane/Mid.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
+          </div>
+
+          <!-- Previous Picks -->
+          <div class="previous-picks">
+            <div class="previous-header">
+              <h5>PREVIOUS PICKS</h5>
+              <div class="previous-buttons">
+                <button id="nextMatchButton" class="btn btn-purple">Ván tiếp theo</button>
+                <button id="resetPreviousButton" class="btn btn-gray">Reset</button>
+              </div>
             </div>
-            <div class="slot pick teamA" id="pickA4">
-              <img src="images/logoLane/ad.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
-            </div>
-            <div class="slot pick teamA" id="pickA5">
-              <img src="images/logoLane/support.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
+            <div id="previousMatchesContainer">
+              <div class="no-previous">Chưa có trận nào</div>
             </div>
           </div>
         </div>
-        <div id="countdown">60</div>
-        <div class="section" >
-          <h2 style="color: red;">Team đỏ</h2>
-          <div class="slots"> 
-            <div class="slot ban" id="banB1"></div>
-            <div class="slot ban" id="banB2"></div>
-            <div class="slot ban" id="banB3"></div>
-            <div class="slot ban" id="banB4"></div>
+
+        <!-- Right placeholder -->
+        <div class="banpick-right"></div>
+      </div>
+
+      <!-- Bottom Section -->
+      <div class="bottom-section">
+        <!-- Trái: Heroes -->
+        <div class="heroes">
+          <div class="menuHero">
+            <div class="section-button">
+              <button id="startButton" class="btn btn-blue">Bắt đầu</button>
+              <button id="lockButton" class="btn btn-red">Khóa Tướng</button>
+              <button id="autoFillButton" class="btn btn-orange">Auto Fill Test</button>
+              <div id="error-message"></div>
+            </div>
+            <input type="text" id="searchInput" placeholder="Tìm kiếm tướng..." />
+          </div>
+          <div class="hero-grid"><!-- JS render heroes --></div>
+        </div>
+
+        <!-- Phải: Match settings -->
+        <div class="match-settings">
+          <div class="match-header">
+            <h3>TÙY CHỈNH TRẬN</h3>
           </div>
 
-          <div class="slots">
-            <div class="slot pick teamB" id="pickB1">
-              <img src="images/logoLane/support.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
+          <!-- Chỉnh tên tuyển thủ -->
+          <div class="section-editName">
+            <textarea id="nameInput" placeholder="Tuyển thủ 1,Tuyển thủ 2,..."></textarea>
+            <button id="editNameButton">Chỉnh sửa</button>
+          </div>
+
+          <!-- Tên đội & tỷ số -->
+          <div class="section-teaminfo">
+            <h4>TÊN ĐỘI & TỶ SỐ</h4>
+            <div class="team-input-row">
+              <div class="team-input">
+                <label for="teamAName">Tên đội A:</label>
+                <input type="text" id="teamAName" placeholder="Nhập tên đội A" maxlength="30" />
+              </div>
+              <div class="score-input">
+                <label for="scoreA">Điểm:</label>
+                <input type="number" id="scoreA" value="0" min="0" max="99" />
+              </div>
             </div>
-            <div class="slot pick" id="pickB2">
-              <img src="images/logoLane/ad.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
+            <div class="team-input-row">
+              <div class="team-input">
+                <label for="teamBName">Tên đội B:</label>
+                <input type="text" id="teamBName" placeholder="Nhập tên đội B" maxlength="30" />
+              </div>
+              <div class="score-input">
+                <label for="scoreB">Điểm:</label>
+                <input type="number" id="scoreB" value="0" min="0" max="99" />
+              </div>
             </div>
-            <div class="slot pick teamB" id="pickB3">
-              <img src="images/logoLane/Mid.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
-            </div>
-            <div class="slot pick teamB" id="pickB4">
-              <img src="images/logoLane/rung.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
-            </div>
-            <div class="slot pick teamB" id="pickB5">
-              <img src="images/logoLane/Top.svg" alt="Logo" class="lane-logo">
-              <div class="player-name"></div>
-            </div>
+            <button id="saveTeamInfoButton" class="btn btn-green">Lưu thông tin đội</button>
+            <button id="swapTeamInfoButton" class="btn btn-blue">Đổi đội</button>
+            <button id="resetTeamInfoButton" class="btn btn-yellow">Reset</button>
+            <div id="teaminfo-message"></div>
           </div>
         </div>
       </div>
-      <div class="section-button">
-        <button id="startButton">Bắt đầu</button>
-        <button id="lockButton">Khóa Tướng</button>
-        <div id="error-message"></div>
 
- 
-      </div>
       <audio id="lockSound" src="audio/PickEffect.mp3"></audio>
-
-        
-
-    <div class="heroes">
-      <div class="menuHero">
-        <input type="text" id="searchInput" placeholder="Tìm kiếm tướng..." />
-        <div class="hero-options">
-          <button class="hero-option">Đấu Sĩ</button>
-          <button class="hero-option">Đỡ Đòn</button>
-          <button class="hero-option">Pháp Sư</button>
-          <button class="hero-option">Sát Thủ</button>
-          <button class="hero-option">Xạ Thủ</button>
-        </div>
-      </div>
-     
-      <div class="hero-grid"></div>
     </div>
-
-    <div >
-      <h3>Chỉnh sửa tên tuyển thủ</h3>
-      <div class="section-editName">
-          <textarea id="nameInput" placeholder="Tuyển thủ 1,Tuyển thủ 2,..."></textarea>
-          <button id="editNameButton" data-index="0">Chỉnh sửa</button>
-        </div>
-      </div>
-    </div>
-
-     
-     
 
     <script src="js/banpickManager.js"></script>
     <script type="module" src="js/index.js"></script>
-   
-
-
   </body>
 </html>

@@ -64,7 +64,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes
-userSchema.index({ email: 1 });
+// Note: email index is automatically created by unique: true
 userSchema.index({ deviceId: 1 });
 userSchema.index({ isActive: 1 });
 
