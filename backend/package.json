@@ -16,7 +16,9 @@
     "ws": "^8.14.2",
     "dotenv": "^16.3.1",
     "bcryptjs": "^2.4.3",
-    "nodemailer": "^6.9.7"
+    "nodemailer": "^6.9.7",
+    "tiktok-live-connector": "^1.2.1",
+    "axios": "^1.6.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

@@ -1,6 +1,9 @@
 // banpickManager.js
 const socket = new WebSocket("ws://localhost:3000/ws");
 
+// Expose socket to window for FandomWar to use
+window.banpickSocket = socket;
+
 socket.onopen = () => {};
 socket.onmessage = (event) => {};
 socket.onerror = (error) => {};

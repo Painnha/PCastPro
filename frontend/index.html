@@ -131,8 +131,164 @@
           </div>
         </div>
 
-        <!-- Right placeholder -->
-        <div class="banpick-right"></div>
+        <!-- Right: Fandom War -->
+        <div class="banpick-right">
+          <div class="fandomwar-section">
+            <div class="fandomwar-header">
+              <h3>FANDOM WAR</h3>
+            </div>
+
+            <!-- Platform Tabs -->
+            <div class="platform-tabs">
+              <button class="platform-tab active" data-platform="tiktok">
+                <span class="tab-icon">🎵</span> TikTok Live
+              </button>
+              <button class="platform-tab" data-platform="facebook">
+                <span class="tab-icon">📘</span> Facebook Live
+              </button>
+            </div>
+
+            <!-- TikTok Tab Content -->
+            <div class="platform-content active" id="tiktokContent">
+              <!-- TikTok Live ID Input -->
+              <div class="tiktok-connect">
+                <label for="tiktokLiveId">TikTok Live ID:</label>
+                <div class="connect-row">
+                  <input 
+                    type="text" 
+                    id="tiktokLiveId" 
+                    placeholder="Nhập username TikTok..." 
+                    class="platform-input"
+                  />
+                  <button id="connectTikTokBtn" class="btn btn-green btn-sm">Kết nối</button>
+                  <button id="disconnectTikTokBtn" class="btn btn-red btn-sm" disabled>Ngắt kết nối</button>
+                  <button id="resetTikTokBtn" class="btn btn-yellow btn-sm">Reset</button>
+                </div>
+              </div>
+
+              <!-- Team Keywords Input -->
+              <div class="team-keywords">
+              <div class="keyword-group">
+                <div class="keyword-label">
+                  <label for="teamAKeyword">Từ khóa Team A:</label>
+                  <span id="teamAVotes" class="vote-badge">🔥 0</span>
+                </div>
+                <div class="keyword-input-wrapper">
+                  <input 
+                    type="text" 
+                    id="teamAKeyword" 
+                    placeholder="VD: SGP, #TeamA, A..." 
+                    class="keyword-input"
+                  />
+                  <button class="gift-dropdown-btn" id="teamAGiftBtn">V</button>
+                </div>
+                <div class="gift-dropdown" id="teamAGiftDropdown">
+                  <div class="gift-dropdown-header">Chọn quà đếm vote:</div>
+                  <div class="gift-options">
+                    <!-- Gifts will be loaded dynamically from database -->
+                  </div>
+                </div>
+              </div>
+              <div class="keyword-group">
+                <div class="keyword-label">
+                  <label for="teamBKeyword">Từ khóa Team B:</label>
+                  <span id="teamBVotes" class="vote-badge">🔥 0</span>
+                </div>
+                <div class="keyword-input-wrapper">
+                  <input 
+                    type="text" 
+                    id="teamBKeyword" 
+                    placeholder="VD: FPT, #TeamB, B..." 
+                    class="keyword-input"
+                  />
+                  <button class="gift-dropdown-btn" id="teamBGiftBtn">V</button>
+                </div>
+                <div class="gift-dropdown" id="teamBGiftDropdown">
+                  <div class="gift-dropdown-header">Chọn quà đếm vote:</div>
+                  <div class="gift-options">
+                    <!-- Gifts will be loaded dynamically from database -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+            <!-- End TikTok Content -->
+
+            <!-- Facebook Tab Content -->
+            <div class="platform-content" id="facebookContent">
+              <!-- Facebook Video & Token Input -->
+              <div class="facebook-connect">
+                <div class="input-group">
+                  <label for="facebookVideoId">Facebook Video ID:</label>
+                  <input 
+                    type="text" 
+                    id="facebookVideoId" 
+                    placeholder="Nhập Video ID..." 
+                    class="platform-input"
+                  />
+                  <small class="input-hint">VD: 123456789012345</small>
+                </div>
+                
+                <div class="input-group">
+                  <label for="facebookAccessToken">Page Access Token:</label>
+                  <input 
+                    type="password" 
+                    id="facebookAccessToken" 
+                    placeholder="Nhập Page Access Token..." 
+                    class="platform-input"
+                  />
+                  <small class="input-hint">Xem hướng dẫn lấy token trong file FACEBOOK_LIVE_SETUP.md</small>
+                </div>
+
+                <div class="connect-row">
+                  <button id="connectFacebookBtn" class="btn btn-green btn-sm">Kết nối</button>
+                  <button id="disconnectFacebookBtn" class="btn btn-red btn-sm" disabled>Ngắt kết nối</button>
+                  <button id="resetFacebookBtn" class="btn btn-yellow btn-sm">Reset</button>
+                </div>
+              </div>
+
+              <!-- Team Keywords Input (Facebook) -->
+              <div class="team-keywords">
+                <div class="keyword-group">
+                  <div class="keyword-label">
+                    <label for="teamAKeywordFb">Từ khóa Team A:</label>
+                    <span id="teamAVotesFb" class="vote-badge">🔥 0</span>
+                  </div>
+                  <input 
+                    type="text" 
+                    id="teamAKeywordFb" 
+                    placeholder="VD: SGP, #TeamA, A..." 
+                    class="keyword-input"
+                  />
+                </div>
+                <div class="keyword-group">
+                  <div class="keyword-label">
+                    <label for="teamBKeywordFb">Từ khóa Team B:</label>
+                    <span id="teamBVotesFb" class="vote-badge">🔥 0</span>
+                  </div>
+                  <input 
+                    type="text" 
+                    id="teamBKeywordFb" 
+                    placeholder="VD: FPT, #TeamB, B..." 
+                    class="keyword-input"
+                  />
+                </div>
+              </div>
+            </div>
+            <!-- End Facebook Content -->
+
+            <!-- Live Comments Display (Shared) -->
+            <div class="live-comments">
+              <div class="comments-header">
+                <h4>Live Comments</h4>
+                <span id="viewersCount" class="badge">👁️ 0</span>
+              </div>
+              <div id="commentsContainer" class="comments-container">
+                <div class="no-comments">Chưa có bình luận nào</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Bottom Section -->
@@ -199,5 +355,6 @@
 
     <script src="js/banpickManager.js"></script>
     <script type="module" src="js/index.js"></script>
+    <script src="js/fandomWar.js"></script>
   </body>
 </html>

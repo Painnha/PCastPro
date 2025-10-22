@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fandom War - Team A</title>
+    <link rel="stylesheet" href="/css/Style.css">
+</head>
+<body>
+    <div class="fandomwar-container">
+        <div class="vote-bar-container">
+            <div class="vote-label team-a">TEAM A</div>
+            <div class="max-indicator">MAX: 1000</div>
+            <div class="vote-bar-progress team-a" id="voteBarProgress"></div>
+            <div class="vote-count-text" id="voteCountText">0</div>
+            <div class="particles" id="particles"></div>
+        </div>
+    </div>
+
+    <script src="/themes/default/js/banpick.js"></script>
+    <script>
+        let currentVotes = 0;
+        const maxVotes = 1000;
+
+        function updateVoteDisplay(votes) {
+            currentVotes = Math.min(votes, maxVotes);
+            const percentage = (currentVotes / maxVotes) * 100;
+            
+            const progressBar = document.getElementById('voteBarProgress');
+            const countText = document.getElementById('voteCountText');
+            
+            // Update progress bar
+            progressBar.style.width = percentage + '%';
+            
+            // Update text
+            countText.textContent = currentVotes.toLocaleString();
+            
+            // Add special effect when reaching max
+            if (currentVotes >= maxVotes) {
+                progressBar.classList.add('max-reached');
+                createParticles();
+            } else {
+                progressBar.classList.remove('max-reached');
+            }
+        }
+
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particle = document.createElement('div');
+            particle.className = 'particle team-a';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 3 + 's';
+            container.appendChild(particle);
+            
+            setTimeout(() => particle.remove(), 3000);
+        }
+
+        // Override handleData from banpick.js to handle fandomwar votes
+        const originalHandleData = window.handleData || handleData;
+        window.handleData = function(data) {
+            if (data.type === 'fandomwar-votes') {
+                updateVoteDisplay(data.teamAVotes || 0);
+            } else if (originalHandleData) {
+                originalHandleData(data);
+            }
+        };
+    </script>
+</body>
+</html>

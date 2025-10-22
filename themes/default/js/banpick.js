@@ -57,6 +57,9 @@ function handleData(data) {
         case 'resetPreviousPicks':
             resetPreviousPicksDisplay();
             break;
+        case 'fandomwar-votes':
+            // Fandom War votes update - handled by FandomWar pages
+            break;
         default:
             updateSlot(data);
             break;

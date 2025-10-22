@@ -3,12 +3,10 @@ const initializeWebSocket = (token) => {
     const ws = new WebSocket(`ws://localhost:3000/ws?token=${token}`);
 
     ws.onopen = () => {
-        console.log('WebSocket connection established.');
+        // WebSocket connected
     };
 
     ws.onmessage = (event) => {
-        console.log('Message from server:', event.data);
-        
         try {
             const data = JSON.parse(event.data);
             
@@ -18,17 +16,25 @@ const initializeWebSocket = (token) => {
                 return;
             }
             
+            // Forward TikTok Live messages to FandomWar
+            if (data.type && data.type.startsWith('tiktok-')) {
+                if (window.fandomWar) {
+                    window.fandomWar.handleWebSocketMessage(data);
+                }
+                return;
+            }
+            
         } catch (error) {
-            console.error('Error parsing WebSocket message:', error);
+            console.error('WebSocket error:', error);
         }
     };
 
     ws.onclose = () => {
-        console.log('WebSocket connection closed.');
+        // WebSocket closed
     };
 
     ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('WebSocket connection error:', error);
     };
     
     return ws;
@@ -80,11 +86,9 @@ const checkUserSession = async () => {
 
         if (response.ok) {
             const data = await response.json();
-            console.log('Session hợp lệ:', data.message);
             
             // Hiển thị thông tin user
             if (data.user) {
-                console.log('User info:', data.user);
                 updateUserInfo(data.user);
             }
             

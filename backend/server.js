@@ -15,7 +15,10 @@ const User = require('./models/User');
 const Session = require('./models/Session');
 const OTP = require('./models/OTP');
 const Theme = require('./models/Theme');
+const TiktokGift = require('./models/TiktokGift');
 const otpEmailService = require('./services/otpEmailService');
+const tiktokLiveService = require('./services/tiktokLiveService');
+const facebookLiveService = require('./services/facebookLiveService');
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -153,7 +156,7 @@ app.get('/obs/:page', async (req, res) => {
     const { page } = req.params;
     
     // Validate page name
-    const validPages = ['PickListA', 'PickListB', 'BanListA', 'BanListB', 'CountDown', 'PreviousListA', 'PreviousListB'];
+    const validPages = ['PickListA', 'PickListB', 'BanListA', 'BanListB', 'CountDown', 'PreviousListA', 'PreviousListB', 'FandomWarA', 'FandomWarB'];
     if (!validPages.includes(page)) {
         return res.status(404).send('Invalid OBS page');
     }
@@ -724,10 +727,269 @@ app.get('/api/admin/migrate-users', async (req, res) => {
     }
 });
 
+// ========== FANDOM WAR APIs ==========
+
+// API: Get TikTok Gifts List
+app.get('/api/fandomwar/gifts', authenticateToken, async (req, res) => {
+    try {
+        const gifts = await TiktokGift.find({}).select('name icon value -_id');
+        
+        res.status(200).send({
+            success: true,
+            gifts: gifts
+        });
+    } catch (error) {
+        console.error('Error fetching TikTok gifts:', error);
+        res.status(500).send({
+            success: false,
+            message: 'Không thể tải danh sách quà tặng'
+        });
+    }
+});
+
+// API: Connect to TikTok Live
+app.post('/api/fandomwar/connect', authenticateToken, async (req, res) => {
+    const { username } = req.body;
+    
+    if (!username) {
+        return res.status(400).send({ 
+            success: false,
+            message: 'TikTok username is required' 
+        });
+    }
+    
+    try {
+        // Disconnect existing connection if any
+        if (tiktokLiveService.getStatus().isConnected) {
+            tiktokLiveService.disconnect();
+        }
+        
+        const result = await tiktokLiveService.connect(username);
+        
+        res.status(200).send({
+            success: true,
+            message: 'Connected to TikTok Live successfully',
+            data: result
+        });
+    } catch (error) {
+        console.error('Error connecting to TikTok Live:', error);
+        res.status(500).send({ 
+            success: false,
+            message: error.message || 'Failed to connect to TikTok Live'
+        });
+    }
+});
+
+// API: Disconnect from TikTok Live
+app.post('/api/fandomwar/disconnect', authenticateToken, (req, res) => {
+    try {
+        tiktokLiveService.disconnect();
+        
+        res.status(200).send({
+            success: true,
+            message: 'Disconnected from TikTok Live'
+        });
+    } catch (error) {
+        console.error('Error disconnecting from TikTok Live:', error);
+        res.status(500).send({ 
+            success: false,
+            message: 'Failed to disconnect'
+        });
+    }
+});
+
+// API: Get TikTok Live connection status
+app.get('/api/fandomwar/status', authenticateToken, (req, res) => {
+    const tiktokStatus = tiktokLiveService.getStatus();
+    const facebookStatus = facebookLiveService.getStatus();
+    
+    // Determine which platform is connected
+    const status = tiktokStatus.isConnected ? tiktokStatus : facebookStatus;
+    
+    res.status(200).send({
+        success: true,
+        data: status
+    });
+});
+
+// ========== FACEBOOK LIVE APIs ==========
+
+// API: Connect to Facebook Live
+app.post('/api/fandomwar/facebook/connect', authenticateToken, async (req, res) => {
+    const { videoId, accessToken } = req.body;
+    
+    if (!videoId || !accessToken) {
+        return res.status(400).send({ 
+            success: false,
+            message: 'Video ID và Access Token là bắt buộc'
+        });
+    }
+    
+    try {
+        // Disconnect TikTok if connected
+        if (tiktokLiveService.getStatus().isConnected) {
+            tiktokLiveService.disconnect();
+        }
+        
+        const result = await facebookLiveService.connect(videoId, accessToken);
+        
+        res.status(200).send({
+            success: true,
+            message: 'Đã kết nối với Facebook Live',
+            data: result
+        });
+    } catch (error) {
+        console.error('Facebook Live connection error:', error);
+        res.status(500).send({
+            success: false,
+            message: error.message || 'Không thể kết nối với Facebook Live'
+        });
+    }
+});
+
+// API: Disconnect from Facebook Live
+app.post('/api/fandomwar/facebook/disconnect', authenticateToken, (req, res) => {
+    try {
+        facebookLiveService.disconnect();
+        
+        res.status(200).send({
+            success: true,
+            message: 'Đã ngắt kết nối khỏi Facebook Live'
+        });
+    } catch (error) {
+        console.error('Facebook Live disconnect error:', error);
+        res.status(500).send({
+            success: false,
+            message: 'Lỗi khi ngắt kết nối'
+        });
+    }
+});
+
+// Setup TikTok Live comment broadcasting via WebSocket
+tiktokLiveService.onComment((comment) => {
+    const message = JSON.stringify({
+        type: 'tiktok-comment',
+        data: comment
+    });
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+
+// Listen to TikTok Live connection events
+tiktokLiveService.on('connected', (data) => {
+    const message = JSON.stringify({
+        type: 'tiktok-connected',
+        data
+    });
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+
+tiktokLiveService.on('disconnected', (data) => {
+    const message = JSON.stringify({
+        type: 'tiktok-disconnected',
+        data
+    });
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+
+tiktokLiveService.on('error', (data) => {
+    const message = JSON.stringify({
+        type: 'tiktok-error',
+        data
+    });
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+
+tiktokLiveService.on('viewers', (data) => {
+    const message = JSON.stringify({
+        type: 'tiktok-viewers',
+        data
+    });
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+
+// ========== Facebook Live WebSocket Broadcasting ==========
+
+// Setup Facebook Live comment broadcasting via WebSocket
+facebookLiveService.onComment((comment) => {
+    const message = JSON.stringify({
+        type: 'facebook-comment',
+        data: comment
+    });
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+
+// Listen to Facebook Live connection events
+facebookLiveService.on('connected', (data) => {
+    const message = JSON.stringify({
+        type: 'facebook-connected',
+        data
+    });
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+
+facebookLiveService.on('disconnected', (data) => {
+    const message = JSON.stringify({
+        type: 'facebook-disconnected',
+        data
+    });
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+
+facebookLiveService.on('error', (data) => {
+    const message = JSON.stringify({
+        type: 'facebook-error',
+        data
+    });
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+
 // WebSocket Server
 wss.on('connection', (ws, req) => {
-    console.log('WebSocket connection established');
-    
     let deviceId = null;
     let sessionId = null;
     
@@ -744,10 +1006,7 @@ wss.on('connection', (ws, req) => {
                 deviceConnections.set(deviceId, new Set());
             }
             deviceConnections.get(deviceId).add(ws);
-            
-            console.log(`WebSocket connected for device: ${deviceId}`);
         } catch (error) {
-            console.error('Invalid WebSocket token:', error);
             ws.close(1008, 'Invalid token');
             return;
         }
@@ -761,8 +1020,6 @@ wss.on('connection', (ws, req) => {
     }));
 
     ws.on('message', async (message) => {
-        console.log('Received message from client:', message);
-        
         if (sessionId) {
             try {
                 await Session.findOneAndUpdate(
@@ -770,7 +1027,7 @@ wss.on('connection', (ws, req) => {
                     { lastActivity: new Date() }
                 );
             } catch (error) {
-                console.error('Error updating session activity:', error);
+                // Session update failed
             }
         }
 
@@ -782,8 +1039,6 @@ wss.on('connection', (ws, req) => {
     });
 
     ws.on('close', () => {
-        console.log('WebSocket connection closed');
-        
         if (deviceId && deviceConnections.has(deviceId)) {
             deviceConnections.get(deviceId).delete(ws);
             if (deviceConnections.get(deviceId).size === 0) {
@@ -793,7 +1048,7 @@ wss.on('connection', (ws, req) => {
     });
 
     ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        // WebSocket error
     });
 });
 
