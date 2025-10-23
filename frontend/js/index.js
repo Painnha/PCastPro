@@ -241,5 +241,12 @@ const logout = () => {
         });
     }
     
+    // Setup guide button
+    const guideButton = document.getElementById('guideButton');
+    if (guideButton) {
+        guideButton.addEventListener('click', () => {
+            window.open('guide.html', '_blank');
+        });
+    }
 
 })();

@@ -611,7 +611,6 @@ app.post('/api/admin/assign-theme', authenticateToken, async (req, res) => {
 app.get('/api/get-team-info', async (req, res) => {
     try {
         const obsDataPath = path.join(__dirname, '../obs-data');
-        console.log('Reading team info from:', obsDataPath);
         
         let teamAName = 'team xanh';
         let teamBName = 'team đỏ';
@@ -627,22 +626,18 @@ app.get('/api/get-team-info', async (req, res) => {
             
             if (fs.existsSync(nameAPath)) {
                 teamAName = fs.readFileSync(nameAPath, 'utf8').trim();
-                console.log('Read nameA:', teamAName);
             }
             if (fs.existsSync(nameBPath)) {
                 teamBName = fs.readFileSync(nameBPath, 'utf8').trim();
-                console.log('Read nameB:', teamBName);
             }
             if (fs.existsSync(scoreAPath)) {
                 scoreA = fs.readFileSync(scoreAPath, 'utf8').trim();
-                console.log('Read scoreA:', scoreA);
             }
             if (fs.existsSync(scoreBPath)) {
                 scoreB = fs.readFileSync(scoreBPath, 'utf8').trim();
-                console.log('Read scoreB:', scoreB);
             }
         } catch (error) {
-            console.log('Some text files not found, using defaults:', error.message);
+            // Some text files not found, using defaults
         }
         
         const result = {
@@ -652,7 +647,6 @@ app.get('/api/get-team-info', async (req, res) => {
             scoreB: parseInt(scoreB) || 0
         };
         
-        console.log('Sending team info:', result);
         res.status(200).send(result);
     } catch (error) {
         console.error('Error reading team info:', error);
@@ -685,7 +679,6 @@ app.post('/api/save-team-info', async (req, res) => {
         fs.writeFileSync(path.join(obsDataPath, 'scoreA.txt'), scoreA.toString(), 'utf8');
         fs.writeFileSync(path.join(obsDataPath, 'scoreB.txt'), scoreB.toString(), 'utf8');
         
-        console.log('Team info saved to text files:', { teamAName, teamBName, scoreA, scoreB });
         
         res.status(200).send({ 
             message: 'Thông tin đội đã được lưu thành công!',
@@ -1012,6 +1005,9 @@ wss.on('connection', (ws, req) => {
         }
     }
 
+    // WebSocket connected successfully
+    console.log(`🔌 WebSocket connected - Device: ${deviceId || 'anonymous'}`);
+    
     ws.send(JSON.stringify({ 
         type: 'welcome', 
         message: 'Welcome to the WebSocket server!',
@@ -1039,6 +1035,7 @@ wss.on('connection', (ws, req) => {
     });
 
     ws.on('close', () => {
+        console.log(`🔌 WebSocket disconnected - Device: ${deviceId || 'anonymous'}`);
         if (deviceId && deviceConnections.has(deviceId)) {
             deviceConnections.get(deviceId).delete(ws);
             if (deviceConnections.get(deviceId).size === 0) {

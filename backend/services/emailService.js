@@ -43,7 +43,7 @@ class EmailService {
 
         try {
             await this.transporter.sendMail(mailOptions);
-            console.log('Device logout notification email sent successfully');
+            // Email sent successfully
         } catch (error) {
             console.error('Error sending device logout notification:', error);
         }
@@ -80,7 +80,7 @@ class EmailService {
 
         try {
             await this.transporter.sendMail(mailOptions);
-            console.log('Login alert email sent successfully');
+            // Email sent successfully
         } catch (error) {
             console.error('Error sending login alert:', error);
         }

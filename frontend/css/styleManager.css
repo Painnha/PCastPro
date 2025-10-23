@@ -49,6 +49,25 @@ body {
   cursor: pointer;
 }
 
+#guideButton {
+  padding: 8px 16px;
+  background: #17a2b8;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  margin-right: 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: none; /* Tạm thời ẩn button hướng dẫn */
+}
+
+#guideButton:hover {
+  background: #138496;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+}
+
 /* ======= BANPICK TOP ======= */
 .banpick-container {
   display: flex;

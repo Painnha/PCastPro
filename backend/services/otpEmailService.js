@@ -66,7 +66,7 @@ class OTPEmailService {
 
         try {
             await this.transporter.sendMail(mailOptions);
-            console.log(`OTP email sent successfully to ${email}`);
+            // OTP email sent successfully
             return true;
         } catch (error) {
             console.error('Error sending OTP email:', error);
@@ -77,7 +77,7 @@ class OTPEmailService {
     async verifyEmailConnection() {
         try {
             await this.transporter.verify();
-            console.log('Email service is ready to send messages');
+            // Email service ready
             return true;
         } catch (error) {
             console.error('Email service verification failed:', error);
