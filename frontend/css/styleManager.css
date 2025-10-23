@@ -729,6 +729,18 @@ body {
   margin-bottom: 15px;
 }
 
+/* ===== FACEBOOK LIVE TEMPORARILY HIDDEN ===== */
+/* TODO: Uncomment these lines when Facebook Live feature is ready */
+/* Temporarily hide Facebook Live tab */
+.platform-tab[data-platform="facebook"] {
+  display: none;
+}
+
+/* Hide Facebook Live content */
+#facebookContent {
+  display: none !important;
+}
+
 .platform-tab {
   flex: 1;
   padding: 12px 20px;
@@ -1018,6 +1030,11 @@ body {
   height: 16px;
 }
 
+.gift-option input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .gift-option .gift-icon {
   width: 24px;
   height: 24px;
@@ -1152,4 +1169,71 @@ body {
   font-size: 11px;
   color: #64748b;
   margin-top: 4px;
+}
+
+/* ======= EFFECT TEST CONTROLS ======= */
+.effect-controls {
+  margin-top: 15px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.effect-controls-header h5 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.effect-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.effect-btn {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #4a5568;
+  color: white;
+}
+
+.effect-btn:hover {
+  background: #2d3748;
+  transform: translateY(-1px);
+}
+
+.effect-btn:active {
+  transform: translateY(0);
+}
+
+.effect-btn[data-votes="50"] {
+  background: #4299e1;
+}
+
+.effect-btn[data-votes="50"]:hover {
+  background: #3182ce;
+}
+
+.effect-btn[data-votes="200"] {
+  background: #ed8936;
+}
+
+.effect-btn[data-votes="200"]:hover {
+  background: #dd6b20;
+}
+
+.effect-btn[data-votes="600"] {
+  background: #48bb78;
+}
+
+.effect-btn[data-votes="600"]:hover {
+  background: #38a169;
 }

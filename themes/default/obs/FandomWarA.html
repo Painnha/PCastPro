@@ -6,16 +6,28 @@
     <title>Fandom War - Team A</title>
     <link rel="stylesheet" href="/css/Style.css">
 </head>
-<body>
-    <div class="fandomwar-container">
-        <div class="vote-bar-container">
-            <div class="vote-label team-a">TEAM A</div>
-            <div class="max-indicator">MAX: 1000</div>
-            <div class="vote-bar-progress team-a" id="voteBarProgress"></div>
-            <div class="vote-count-text" id="voteCountText">0</div>
+<body >
+    <div class="fandomwar-container team-a">
+        <div class="vote-bar-wrapper">
+            <img src="/themes/default/assets/Overlay/LineVoteA.png" alt="Vote Bar" class="vote-bar-bg">
+            <div class="vote-bar-progress-container">
+                <div class="vote-bar-progress" id="voteBarProgress"></div>
+            </div>
+            <div class="vote-bar-content">
+                <div class="fandom-war-text">FANDOM WAR</div>
+                <div class="vote-count-text" id="voteCountText">0</div>
+            </div>
             <div class="particles" id="particles"></div>
         </div>
+        
+        <!-- Effect Videos -->
+        <div class="effect-video">
+            <video id="effectVideo" autoplay muted loop style="display: none;">
+                <source src="/themes/default/assets/Overlay/0_199.webm" type="video/webm">
+            </video>
+        </div>
     </div>
+
 
     <script src="/themes/default/js/banpick.js"></script>
     <script>
@@ -28,12 +40,17 @@
             
             const progressBar = document.getElementById('voteBarProgress');
             const countText = document.getElementById('voteCountText');
+            const effectVideo = document.getElementById('effectVideo');
             
-            // Update progress bar
+            // Update progress bar - Team A progress từ phải sang trái
             progressBar.style.width = percentage + '%';
             
             // Update text
             countText.textContent = currentVotes.toLocaleString();
+            
+            
+            // Update effect video based on vote count
+            updateEffectVideo(currentVotes, effectVideo);
             
             // Add special effect when reaching max
             if (currentVotes >= maxVotes) {
@@ -44,16 +61,39 @@
             }
         }
 
+        function updateEffectVideo(votes, videoElement) {
+            let videoSrc = '';
+            
+            if (votes >= 0 && votes <= 199) {
+                videoSrc = '/themes/default/assets/Overlay/0_199.webm';
+            } else if (votes >= 200 && votes <= 599) {
+                videoSrc = '/themes/default/assets/Overlay/200_600.webm';
+            } else if (votes >= 600 && votes <= 1000) {
+                videoSrc = '/themes/default/assets/Overlay/600_1000.webm';
+            }
+            
+            if (videoSrc && videoElement.src !== videoSrc) {
+                videoElement.src = videoSrc;
+                videoElement.style.display = 'block';
+                videoElement.play();
+            }
+        }
+
         function createParticles() {
             const container = document.getElementById('particles');
-            const particle = document.createElement('div');
-            particle.className = 'particle team-a';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.animationDelay = Math.random() * 3 + 's';
-            container.appendChild(particle);
-            
-            setTimeout(() => particle.remove(), 3000);
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 0.5 + 's';
+                    container.appendChild(particle);
+                    
+                    setTimeout(() => particle.remove(), 3000);
+                }, i * 100);
+            }
         }
+
 
         // Override handleData from banpick.js to handle fandomwar votes
         const originalHandleData = window.handleData || handleData;
@@ -64,6 +104,9 @@
                 originalHandleData(data);
             }
         };
+
+        // Initialize
+        updateVoteDisplay(0);
     </script>
 </body>
 </html>

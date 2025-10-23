@@ -4,7 +4,7 @@
 class FandomWar {
   constructor() {
     this.isConnected = false;
-    this.currentPlatform = 'tiktok'; // 'tiktok' or 'facebook'
+    this.currentPlatform = 'tiktok'; // Only TikTok for now, Facebook temporarily hidden
     
     // TikTok
     this.tiktokLiveId = '';
@@ -81,6 +81,11 @@ class FandomWar {
     const contents = document.querySelectorAll('.platform-content');
     
     tabs.forEach(tab => {
+      // Skip Facebook tab since it's hidden
+      if (tab.dataset.platform === 'facebook') {
+        return;
+      }
+      
       tab.addEventListener('click', () => {
         const platform = tab.dataset.platform;
         
@@ -131,6 +136,9 @@ class FandomWar {
     
     // Load saved settings
     this.loadSettings();
+    
+    // Setup effect test buttons
+    this.setupEffectTestButtons();
   }
 
   // ========== TIKTOK METHODS ==========
@@ -516,7 +524,7 @@ class FandomWar {
       isGift: isGift
     };
     
-    // Count votes for teams with value multiplier
+    // Count votes for teams with value multiplier (only if team is not null)
     if (team === 'team-a') {
       this.teamAVotes += voteValue;
       this.updateVotesDisplay();
@@ -524,6 +532,7 @@ class FandomWar {
       this.teamBVotes += voteValue;
       this.updateVotesDisplay();
     }
+    // Nếu team = null (quà được chọn bởi cả 2 team), không tính vote
     
     this.comments.unshift(comment);
     
@@ -1004,6 +1013,9 @@ class FandomWar {
         this.teamAGifts = Array.from(newTeamACheckboxes)
           .filter(cb => cb.checked)
           .map(cb => cb.value);
+        
+        // Update Team B dropdown to disable gifts selected by Team A
+        this.updateGiftDropdownStates();
         this.saveGiftSettings();
       });
     });
@@ -1016,12 +1028,62 @@ class FandomWar {
         this.teamBGifts = Array.from(newTeamBCheckboxes)
           .filter(cb => cb.checked)
           .map(cb => cb.value);
+        
+        // Update Team A dropdown to disable gifts selected by Team B
+        this.updateGiftDropdownStates();
         this.saveGiftSettings();
       });
     });
 
     // Load saved gift selections
     this.loadGiftSettings();
+    
+    // Initial update of dropdown states
+    this.updateGiftDropdownStates();
+  }
+
+  updateGiftDropdownStates() {
+    // Get all checkboxes for both teams
+    const teamACheckboxes = this.teamAGiftDropdown.querySelectorAll('input[type="checkbox"]');
+    const teamBCheckboxes = this.teamBGiftDropdown.querySelectorAll('input[type="checkbox"]');
+    
+    // Update Team A checkboxes - disable gifts selected by Team B
+    teamACheckboxes.forEach(checkbox => {
+      const giftName = checkbox.value;
+      const isSelectedByTeamB = this.teamBGifts.includes(giftName);
+      const isSelectedByTeamA = this.teamAGifts.includes(giftName);
+      
+      if (isSelectedByTeamB && !isSelectedByTeamA) {
+        // Disable checkbox if gift is selected by Team B but not by Team A
+        checkbox.disabled = true;
+        checkbox.parentElement.style.opacity = '0.5';
+        checkbox.parentElement.style.cursor = 'not-allowed';
+      } else {
+        // Enable checkbox if gift is not selected by Team B or is already selected by Team A
+        checkbox.disabled = false;
+        checkbox.parentElement.style.opacity = '1';
+        checkbox.parentElement.style.cursor = 'pointer';
+      }
+    });
+    
+    // Update Team B checkboxes - disable gifts selected by Team A
+    teamBCheckboxes.forEach(checkbox => {
+      const giftName = checkbox.value;
+      const isSelectedByTeamA = this.teamAGifts.includes(giftName);
+      const isSelectedByTeamB = this.teamBGifts.includes(giftName);
+      
+      if (isSelectedByTeamA && !isSelectedByTeamB) {
+        // Disable checkbox if gift is selected by Team A but not by Team B
+        checkbox.disabled = true;
+        checkbox.parentElement.style.opacity = '0.5';
+        checkbox.parentElement.style.cursor = 'not-allowed';
+      } else {
+        // Enable checkbox if gift is not selected by Team A or is already selected by Team B
+        checkbox.disabled = false;
+        checkbox.parentElement.style.opacity = '1';
+        checkbox.parentElement.style.cursor = 'pointer';
+      }
+    });
   }
 
   saveGiftSettings() {
@@ -1054,9 +1116,37 @@ class FandomWar {
           checkbox.checked = this.teamBGifts.includes(checkbox.value);
         });
       }
+      
+      // Update dropdown states after loading settings
+      this.updateGiftDropdownStates();
     } catch (error) {
       console.error('Error loading gift settings:', error);
     }
+  }
+
+  setupEffectTestButtons() {
+    // Setup effect test buttons
+    const testButtons = document.querySelectorAll('.effect-btn');
+    testButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const votes = parseInt(button.dataset.votes);
+        this.testVoteCount(votes);
+      });
+    });
+  }
+
+  testVoteCount(votes) {
+    // Set test vote count for both teams
+    this.teamAVotes = votes;
+    this.teamBVotes = votes;
+    
+    // Update displays
+    this.updateVotesDisplay();
+    
+    // Broadcast to OBS views
+    this.broadcastVoteCounts();
+    
+    console.log(`Test votes set to: ${votes}`);
   }
 }
 
