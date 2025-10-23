@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
-title PCastPro - Auto Startup
+title PCastPro - Smart Auto Startup
 color 0A
 
 echo.
 echo ========================================
-echo    PCastPro - Auto Startup Script
+echo    PCastPro - Smart Auto Startup
 echo ========================================
 echo.
 
@@ -42,9 +42,12 @@ if %errorlevel% neq 0 (
         
         echo.
         echo ✅ Node.js đã được cài đặt!
-        echo 🔄 Vui lòng khởi động lại Command Prompt và chạy lại script này.
+        echo 🔄 Đang khởi động lại script...
         echo.
-        pause
+        
+        :: Khởi động lại script sau khi cài đặt
+        timeout /t 3 /nobreak >nul
+        start "" "%~f0"
         exit /b 0
     ) else (
         echo ❌ Không thể tải Node.js!
