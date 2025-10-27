@@ -57,6 +57,9 @@ function handleData(data) {
         case 'resetPreviousPicks':
             resetPreviousPicksDisplay();
             break;
+        case 'resetBanPick':
+            resetBanPickSlots();
+            break;
         default:
             updateSlot(data);
             break;
@@ -161,6 +164,51 @@ function updateSwapImage(slotId, newImage) {
     } else {
         // For manager view (index.html) where slot itself has the background image
         slot.style.backgroundImage = newImage ? `url(${newImage})` : '';
+    }
+}
+
+// Function to reset ban/pick slots but keep player names
+function resetBanPickSlots() {
+    // Reset pick slots
+    for (let i = 1; i <= 5; i++) {
+        ['A', 'B'].forEach(team => {
+            const slot = document.getElementById(`pick${team}${i}`);
+            if (slot) {
+                // Clear hero image
+                const heroImageDiv = slot.querySelector('.heroImage');
+                if (heroImageDiv) {
+                    heroImageDiv.style.backgroundImage = '';
+                    heroImageDiv.classList.remove('locked');
+                    heroImageDiv.style.animation = '';
+                    heroImageDiv.style.filter = '';
+                }
+                // Remove classes
+                slot.classList.remove('active', 'locked');
+                // Show lane logo if exists
+                const laneLogo = slot.querySelector('.lane-logo');
+                if (laneLogo) laneLogo.style.display = 'block';
+                // Keep player name - DON'T touch it
+            }
+        });
+    }
+    
+    // Reset ban slots
+    for (let i = 1; i <= 4; i++) {
+        ['A', 'B'].forEach(team => {
+            const slot = document.getElementById(`ban${team}${i}`);
+            if (slot) {
+                // Clear hero image
+                const heroImageDiv = slot.querySelector('.heroImage');
+                if (heroImageDiv) {
+                    heroImageDiv.style.backgroundImage = '';
+                    heroImageDiv.classList.remove('locked');
+                    heroImageDiv.style.animation = '';
+                    heroImageDiv.style.filter = '';
+                }
+                // Remove classes
+                slot.classList.remove('active', 'locked');
+            }
+        });
     }
 }
 

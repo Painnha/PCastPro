@@ -74,6 +74,9 @@ function handleData(data) {
         case 'resetPreviousPicks':
             resetPreviousPicksDisplay();
             break;
+        case 'resetBanPick':
+            resetBanPickSlots();
+            break;
         case 'teamStatus':
             updateTeamStatusFromWebSocket(data);
             break;
@@ -333,6 +336,66 @@ function updateTeamStatusFromWebSocket(data) {
             statusImage.src = `${THEME_PATH}/assets/Overlay/statusNonActive.png`;
         }
     }
+}
+
+// Function to reset ban/pick slots but keep player names
+function resetBanPickSlots() {
+    // Reset pick slots
+    for (let i = 1; i <= 5; i++) {
+        ['A', 'B'].forEach(team => {
+            const slot = document.getElementById(`pick${team}${i}`);
+            if (slot) {
+                // Clear hero image
+                const heroImageDiv = slot.querySelector('.heroImage');
+                if (heroImageDiv) {
+                    heroImageDiv.style.backgroundImage = '';
+                    heroImageDiv.classList.remove('locked');
+                    heroImageDiv.style.animation = '';
+                    heroImageDiv.style.filter = '';
+                }
+                // Remove classes
+                slot.classList.remove('active', 'locked');
+                // Show lane logo if exists
+                const laneLogo = slot.querySelector('.lane-logo');
+                if (laneLogo) laneLogo.style.display = 'block';
+                // Remove active indicator
+                const activeIndicator = slot.querySelector('.active-indicator');
+                if (activeIndicator) {
+                    activeIndicator.classList.remove('show');
+                    activeIndicator.style.display = 'none';
+                }
+                // Keep player name - DON'T touch it
+            }
+        });
+    }
+    
+    // Reset ban slots
+    for (let i = 1; i <= 4; i++) {
+        ['A', 'B'].forEach(team => {
+            const slot = document.getElementById(`ban${team}${i}`);
+            if (slot) {
+                // Clear hero image
+                const heroImageDiv = slot.querySelector('.heroImage');
+                if (heroImageDiv) {
+                    heroImageDiv.style.backgroundImage = '';
+                    heroImageDiv.classList.remove('locked');
+                    heroImageDiv.style.animation = '';
+                    heroImageDiv.style.filter = '';
+                }
+                // Remove classes
+                slot.classList.remove('active', 'locked');
+                // Remove active indicator
+                const activeIndicator = slot.querySelector('.active-indicator');
+                if (activeIndicator) {
+                    activeIndicator.classList.remove('show');
+                    activeIndicator.style.display = 'none';
+                }
+            }
+        });
+    }
+    
+    // Reset team status
+    resetTeamStatus();
 }
 
 // Function to reset previous picks display

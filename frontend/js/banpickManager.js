@@ -521,6 +521,11 @@ const handleNextMatch = () => {
     previousMatches: window.previousMatches
   }));
   
+  // Send reset ban/pick message to OBS views
+  socket.send(JSON.stringify({ 
+    type: "resetBanPick"
+  }));
+  
   alert("Trận đã được lưu! Bắt đầu ván mới.");
 };
 
@@ -553,6 +558,9 @@ const savePreviousMatch = (matchData) => {
 };
 
 const resetCurrentMatch = () => {
+  // Disable swap functionality khi reset match
+  disableSwapFunctionality();
+  
   // reset 10 pick slots
   for (let i = 1; i <= 5; i++) {
     ["A", "B"].forEach((team) => {
@@ -739,16 +747,52 @@ document.addEventListener("DOMContentLoaded", function () {
 /* ================= SWAP HERO ================= */
 let firstSelectedSlot = null;
 let secondSelectedSlot = null;
+let swapListenersAttached = false;
 
 function enableSwapFunctionality() {
+  if (swapListenersAttached) return; // Đã attach rồi thì không attach lại
+  
   const slots = document.querySelectorAll(".slot");
   slots.forEach((slot) => {
     slot.addEventListener("click", handleSlotSelection);
   });
+  swapListenersAttached = true;
+}
+
+function disableSwapFunctionality() {
+  if (!swapListenersAttached) return; // Chưa attach thì không cần remove
+  
+  const slots = document.querySelectorAll(".slot");
+  slots.forEach((slot) => {
+    slot.removeEventListener("click", handleSlotSelection);
+  });
+  swapListenersAttached = false;
+  firstSelectedSlot = null;
+  secondSelectedSlot = null;
+  
+  // Xóa class selectedswap khỏi tất cả slot
+  document.querySelectorAll(".slot.selectedswap").forEach((slot) => {
+    slot.classList.remove("selectedswap");
+  });
 }
 
 function handleSlotSelection(event) {
-  const selectedSlot = event.target;
+  // Tìm element thực tế là slot (có thể click vào child element)
+  let selectedSlot = event.target;
+  while (selectedSlot && !selectedSlot.classList.contains("slot")) {
+    selectedSlot = selectedSlot.parentElement;
+  }
+  
+  if (!selectedSlot) return; // Không tìm thấy slot thì return
+  
+  // CHỈ cho phép swap khi TẤT CẢ picks đều đã bị locked
+  const allPickSlots = document.querySelectorAll(".slot[id^='pick']");
+  const allPicksLocked = Array.from(allPickSlots).every(slot => slot.classList.contains("locked"));
+  
+  // Nếu chưa lock hết picks thì KHÔNG cho swap
+  if (!allPicksLocked) {
+    return;
+  }
 
   if (!firstSelectedSlot) {
     firstSelectedSlot = selectedSlot;
