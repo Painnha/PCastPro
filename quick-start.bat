@@ -10,54 +10,54 @@ echo ========================================
 echo.
 
 :: Cập nhật từ GitHub
-echo [1/4] Cập nhật mã nguồn từ GitHub...
+echo [1/4] Cap nhat ma nguon tu GitHub...
 cd /d "%~dp0"
 if exist ".git" (
     git fetch origin >nul 2>&1
-    if errorlevel 1 (
-        echo ⚠️  Không thể kết nối với GitHub, tiếp tục với mã hiện tại...
-    ) else (
+    if not errorlevel 1 (
         for /f "tokens=*" %%i in ('git rev-parse --abbrev-ref HEAD') do set CURRENT_BRANCH=%%i
-        echo 📥 Đang tải cập nhật mới nhất...
+        echo Dang tai cap nhat moi nhat...
         git pull origin %CURRENT_BRANCH%
-        if errorlevel 1 (
-            echo ⚠️  Không thể cập nhật (có thể có file được sửa đổi)
+        if not errorlevel 1 (
+            echo Da cap nhat ma nguon thanh cong!
         ) else (
-            echo ✅ Đã cập nhật mã nguồn thành công!
+            echo Khong the cap nhat (co the co file duoc sua doi)
         )
+    ) else (
+        echo Khong the ket noi voi GitHub, tiep tuc voi ma hien tai...
     )
 ) else (
-    echo ℹ️  Không phải Git repository, bỏ qua cập nhật
+    echo Khong phai Git repository, bo qua cap nhat
 )
 echo.
 
 :: Chuyển đến thư mục backend
-echo [2/4] Chuyển đến thư mục backend...
+echo [2/4] Chuyen den thu muc backend...
 cd /d "%~dp0backend"
 
 :: Kiểm tra node_modules
-echo [3/4] Kiểm tra dependencies...
+echo [3/4] Kiem tra dependencies...
 if not exist "node_modules" (
-    echo 📦 Cài đặt dependencies lần đầu...
+    echo Cai dat dependencies lan dau...
     npm install
-    if %errorlevel% neq 0 (
-        echo ❌ Lỗi khi cài đặt dependencies!
+    if errorlevel 1 (
+        echo Loi khi cai dat dependencies!
         pause
         exit /b 1
     )
-    echo ✅ Đã cài đặt dependencies!
+    echo Da cai dat dependencies!
 )
 echo.
 
 :: Mở trình duyệt và khởi động
-echo [4/4] Khởi động PCastPro...
+echo [4/4] Khoi dong PCastPro...
 timeout /t 2 /nobreak >nul
 start "" "http://localhost:3000"
-echo 🌐 Đã mở trình duyệt!
-echo 🚀 Đang khởi động backend server...
+echo Da mo trinh duyet!
+echo Dang khoi dong backend server...
 echo.
-echo ⚠️  Không đóng cửa sổ này để giữ server chạy
-echo 💡 Để dừng: Nhấn Ctrl+C
+echo Khong dong cua so nay de giu server chay
+echo De dung: Nhan Ctrl+C
 echo.
 
 :: Khởi động server
