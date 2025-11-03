@@ -9,25 +9,29 @@ echo    PCastPro - Quick Start
 echo ========================================
 echo.
 
-:: Cập nhật từ GitHub
+:: Cập nhật từ GitHub (Force Update - đè lên mã cũ)
 echo [1/4] Cap nhat ma nguon tu GitHub...
 cd /d "%~dp0"
 if exist ".git" (
-    git fetch origin >nul 2>&1
-    if not errorlevel 1 (
+    echo Dang kiem tra cap nhat...
+    git fetch origin
+    if %ERRORLEVEL% EQU 0 (
         for /f "tokens=*" %%i in ('git rev-parse --abbrev-ref HEAD') do set CURRENT_BRANCH=%%i
-        echo Dang tai cap nhat moi nhat...
-        git pull origin %CURRENT_BRANCH%
-        if not errorlevel 1 (
-            echo Da cap nhat ma nguon thanh cong!
+        echo Dang cap nhat tu branch %CURRENT_BRANCH%...
+        echo Huy tat ca thay doi local va dong bo 100%% voi GitHub...
+        git reset --hard origin/%CURRENT_BRANCH%
+        if %ERRORLEVEL% EQU 0 (
+            echo [✓] Da cap nhat ma nguon thanh cong!
+            echo [✓] Ma nguon hien tai giong 100%% voi GitHub
         ) else (
-            echo Khong the cap nhat (co the co file duoc sua doi)
+            echo [!] Khong the cap nhat
         )
     ) else (
-        echo Khong the ket noi voi GitHub, tiep tuc voi ma hien tai...
+        echo [!] Khong the ket noi voi GitHub
+        echo Tiep tuc voi ma nguon hien tai...
     )
 ) else (
-    echo Khong phai Git repository, bo qua cap nhat
+    echo [!] Khong phai Git repository, bo qua cap nhat
 )
 echo.
 

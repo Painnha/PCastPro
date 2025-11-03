@@ -13,6 +13,7 @@ let selectedHeroImage = "";
 
 /* ===================== HERO LIST (FULL) ===================== */
 const heroes = [
+  { name: "Edras", image: "images/heroes/Edras.jpg" },
   { name: "Goverra", image: "images/heroes/Goverra.jpg" },
   { name: "Henio", image: "images/heroes/Henio.jpg" },
   { name: "Bỏ trống", image: "images/heroes/khongcam.png" },
