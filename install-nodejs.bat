@@ -10,12 +10,12 @@ echo ========================================
 echo.
 
 :: Kiểm tra Node.js
-echo [1/3] Kiểm tra Node.js...
+echo [1/3] Kiem tra Node.js...
 node --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ❌ Node.js chưa được cài đặt!
+if %ERRORLEVEL% NEQ 0 (
+    echo [X] Node.js chua duoc cai dat!
     echo.
-    echo 📥 Đang tải và cài đặt Node.js tự động...
+    echo [^>] Dang tai va cai dat Node.js tu dong...
     echo.
     
     :: Tạo thư mục tạm để tải Node.js
@@ -23,17 +23,17 @@ if %errorlevel% neq 0 (
     if not exist "%TEMP_DIR%" mkdir "%TEMP_DIR%"
     
     :: Tải Node.js installer
-    echo 🔽 Đang tải Node.js LTS (v20.10.0)...
-    echo 📁 Lưu tại: %TEMP_DIR%\nodejs-installer.msi
+    echo [^>] Dang tai Node.js LTS (v20.10.0)...
+    echo [^>] Luu tai: %TEMP_DIR%\nodejs-installer.msi
     echo.
     
-    powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.10.0/node-v20.10.0-x64.msi' -OutFile '%TEMP_DIR%\nodejs-installer.msi'}"
+    powershell -ExecutionPolicy Bypass -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.10.0/node-v20.10.0-x64.msi' -OutFile '%TEMP_DIR%\nodejs-installer.msi'}"
     
     if exist "%TEMP_DIR%\nodejs-installer.msi" (
-        echo ✅ Đã tải Node.js thành công!
+        echo [✓] Da tai Node.js thanh cong!
         echo.
-        echo 🔧 Đang cài đặt Node.js...
-        echo ⚠️  Vui lòng làm theo hướng dẫn trong cửa sổ cài đặt
+        echo [^>] Dang cai dat Node.js...
+        echo [!] Vui long lam theo huong dan trong cua so cai dat
         echo.
         
         :: Chạy installer với giao diện người dùng
@@ -44,60 +44,60 @@ if %errorlevel% neq 0 (
         rmdir "%TEMP_DIR%"
         
         echo.
-        echo ✅ Node.js đã được cài đặt!
+        echo [✓] Node.js da duoc cai dat!
         echo.
-        echo [2/3] Kiểm tra lại Node.js...
+        echo [2/3] Kiem tra lai Node.js...
         node --version >nul 2>&1
-        if %errorlevel% equ 0 (
+        if %ERRORLEVEL% EQU 0 (
             for /f "tokens=*" %%i in ('node --version') do set NODE_VERSION=%%i
-            echo ✅ Node.js hoạt động: %NODE_VERSION%
+            echo [✓] Node.js hoat dong: %NODE_VERSION%
             
             echo.
-            echo [3/3] Kiểm tra npm...
+            echo [3/3] Kiem tra npm...
             npm --version >nul 2>&1
-            if %errorlevel% equ 0 (
+            if %ERRORLEVEL% EQU 0 (
                 for /f "tokens=*" %%i in ('npm --version') do set NPM_VERSION=%%i
-                echo ✅ npm hoạt động: %NPM_VERSION%
+                echo [✓] npm hoat dong: %NPM_VERSION%
                 echo.
-                echo 🎉 Cài đặt thành công!
-                echo 💡 Bây giờ bạn có thể chạy start-pcastpro.bat để khởi động PCastPro
+                echo [✓] Cai dat thanh cong!
+                echo [^>] Bay gio ban co the chay quick-start.bat de khoi dong PCastPro
             ) else (
-                echo ❌ npm không hoạt động!
+                echo [X] npm khong hoat dong!
             )
         ) else (
-            echo ❌ Node.js không hoạt động!
-            echo 💡 Vui lòng khởi động lại Command Prompt và thử lại
+            echo [X] Node.js khong hoat dong!
+            echo [^>] Vui long khoi dong lai Command Prompt va thu lai
         )
     ) else (
-        echo ❌ Không thể tải Node.js!
+        echo [X] Khong the tai Node.js!
         echo.
-        echo 💡 Vui lòng cài đặt Node.js thủ công:
-        echo    1. Truy cập: https://nodejs.org/
-        echo    2. Tải phiên bản LTS (Long Term Support)
-        echo    3. Cài đặt với các tùy chọn mặc định
-        echo    4. Khởi động lại Command Prompt
-        echo    5. Chạy lại file này
+        echo [^>] Vui long cai dat Node.js thu cong:
+        echo    1. Truy cap: https://nodejs.org/
+        echo    2. Tai phien ban LTS (Long Term Support)
+        echo    3. Cai dat voi cac tuy chon mac dinh
+        echo    4. Khoi dong lai Command Prompt
+        echo    5. Chay lai file nay
     )
 ) else (
     for /f "tokens=*" %%i in ('node --version') do set NODE_VERSION=%%i
-    echo ✅ Node.js đã được cài đặt: %NODE_VERSION%
+    echo [✓] Node.js da duoc cai dat: %NODE_VERSION%
     echo.
-    echo [2/3] Kiểm tra npm...
+    echo [2/3] Kiem tra npm...
     npm --version >nul 2>&1
-    if %errorlevel% equ 0 (
+    if %ERRORLEVEL% EQU 0 (
         for /f "tokens=*" %%i in ('npm --version') do set NPM_VERSION=%%i
-        echo ✅ npm đã được cài đặt: %NPM_VERSION%
+        echo [✓] npm da duoc cai dat: %NPM_VERSION%
         echo.
-        echo 🎉 Node.js và npm đã sẵn sàng!
-        echo 💡 Bạn có thể chạy start-pcastpro.bat để khởi động PCastPro
+        echo [✓] Node.js va npm da san sang!
+        echo [^>] Ban co the chay quick-start.bat de khoi dong PCastPro
     ) else (
-        echo ❌ npm không hoạt động!
+        echo [X] npm khong hoat dong!
     )
 )
 
 echo.
 echo ========================================
-echo    Hoàn thành!
+echo    Hoan thanh!
 echo ========================================
 echo.
 pause
