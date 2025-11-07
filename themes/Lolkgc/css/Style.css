@@ -50,9 +50,15 @@ body {
     font-weight: normal;
     font-style: normal;
 }
+@font-face {
+    font-family: 'UTMEremitage';
+    src: url('/assets/font/UTM Eremitage.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
 
   .player-name {
-    font-family: 'GS3DRUKCONDSUPER'; /* Sử dụng font chữ tùy chỉnh */
+    font-family: 'UTMEremitage'; /* Sử dụng font chữ tùy chỉnh */
     font-size: 30px; /* Kích thước font chữ */
     color: #ffffff; /* Màu chữ */
     position: absolute;
