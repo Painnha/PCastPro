@@ -239,15 +239,25 @@ body {
 }
 
 .pick-background {
-    display: none; /* Ẩn background overlay */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 1; /* Nằm trên ảnh tướng nhưng dưới icon lane và tên tuyển thủ */
 }
 
 .teamA .pick-background {
-    display: none;
+    display: block;
+    background-image: url('/assets/Overlay/backgroundA.png');
 }
 
 .teamB .pick-background {
-    display: none;
+    display: block;
+    background-image: url('/assets/Overlay/backgroundB.png');
 }
 
 .heroImage {
