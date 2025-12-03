@@ -552,11 +552,11 @@ class FandomWar {
     // Check keywords based on current platform
     if (this.currentPlatform === 'tiktok') {
       // TikTok keywords
-      if (this.teamAKeyword && textTrimmed.includes(this.teamAKeyword.trim().toLowerCase())) {
+      if (this.teamAKeyword && textTrimmed === this.teamAKeyword.trim().toLowerCase()) {
         return 'team-a';
       }
       
-      if (this.teamBKeyword && textTrimmed.includes(this.teamBKeyword.trim().toLowerCase())) {
+      if (this.teamBKeyword && textTrimmed === this.teamBKeyword.trim().toLowerCase()) {
         return 'team-b';
       }
     } else if (this.currentPlatform === 'facebook') {
@@ -564,11 +564,11 @@ class FandomWar {
       const teamAKeywordFb = this.teamAKeywordFbInput?.value.trim().toLowerCase();
       const teamBKeywordFb = this.teamBKeywordFbInput?.value.trim().toLowerCase();
       
-      if (teamAKeywordFb && textTrimmed.includes(teamAKeywordFb)) {
+      if (teamAKeywordFb && textTrimmed === teamAKeywordFb) {
         return 'team-a';
       }
       
-      if (teamBKeywordFb && textTrimmed.includes(teamBKeywordFb)) {
+      if (teamBKeywordFb && textTrimmed === teamBKeywordFb) {
         return 'team-b';
       }
     }
