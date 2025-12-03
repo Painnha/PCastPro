@@ -112,11 +112,13 @@ class FandomWar {
     this.teamAKeywordInput.addEventListener('change', (e) => {
       this.teamAKeyword = e.target.value.trim();
       this.saveSettings();
+      this.broadcastConfig();
     });
     
     this.teamBKeywordInput.addEventListener('change', (e) => {
       this.teamBKeyword = e.target.value.trim();
       this.saveSettings();
+      this.broadcastConfig();
     });
     
     // Facebook event listeners
@@ -550,11 +552,11 @@ class FandomWar {
     // Check keywords based on current platform
     if (this.currentPlatform === 'tiktok') {
       // TikTok keywords
-      if (this.teamAKeyword && textTrimmed === this.teamAKeyword.trim().toLowerCase()) {
+      if (this.teamAKeyword && textTrimmed.includes(this.teamAKeyword.trim().toLowerCase())) {
         return 'team-a';
       }
       
-      if (this.teamBKeyword && textTrimmed === this.teamBKeyword.trim().toLowerCase()) {
+      if (this.teamBKeyword && textTrimmed.includes(this.teamBKeyword.trim().toLowerCase())) {
         return 'team-b';
       }
     } else if (this.currentPlatform === 'facebook') {
@@ -562,11 +564,11 @@ class FandomWar {
       const teamAKeywordFb = this.teamAKeywordFbInput?.value.trim().toLowerCase();
       const teamBKeywordFb = this.teamBKeywordFbInput?.value.trim().toLowerCase();
       
-      if (teamAKeywordFb && textTrimmed === teamAKeywordFb) {
+      if (teamAKeywordFb && textTrimmed.includes(teamAKeywordFb)) {
         return 'team-a';
       }
       
-      if (teamBKeywordFb && textTrimmed === teamBKeywordFb) {
+      if (teamBKeywordFb && textTrimmed.includes(teamBKeywordFb)) {
         return 'team-b';
       }
     }
@@ -633,6 +635,67 @@ class FandomWar {
     
     // Broadcast vote counts to OBS views via WebSocket
     this.broadcastVoteCounts();
+  }
+
+  // Broadcast Fandom War config (keywords + gifts + icons) to OBS overlays
+  broadcastConfig() {
+    // Helper to map gift names -> { name, icon }
+    const mapGifts = (giftNames) => {
+      if (!Array.isArray(giftNames) || giftNames.length === 0) return [];
+
+      return giftNames.map(name => {
+        const gift = (this.availableGifts || []).find(g => g.name === name);
+        return {
+          name,
+          icon: gift && gift.icon ? gift.icon : ''
+        };
+      });
+    };
+
+    const payload = {
+      type: 'fandomwar-config',
+      teamA: {
+        keyword: this.teamAKeyword || '',
+        gifts: mapGifts(this.teamAGifts)
+      },
+      teamB: {
+        keyword: this.teamBKeyword || '',
+        gifts: mapGifts(this.teamBGifts)
+      }
+    };
+
+    const sendConfig = () => {
+      if (!window.banpickSocket || window.banpickSocket.readyState !== WebSocket.OPEN) {
+        return false;
+      }
+      try {
+        window.banpickSocket.send(JSON.stringify(payload));
+        return true;
+      } catch (error) {
+        console.error('Error broadcasting fandomwar config:', error);
+        return false;
+      }
+    };
+
+    // Nếu gửi được ngay thì thoát
+    if (sendConfig()) return;
+
+    // Nếu socket chưa sẵn sàng, lưu lại và thử gửi lại định kỳ
+    this._pendingConfig = payload;
+    if (this._configRetryTimer) return;
+
+    this._configRetryTimer = setInterval(() => {
+      if (this._pendingConfig && window.banpickSocket && window.banpickSocket.readyState === WebSocket.OPEN) {
+        try {
+          window.banpickSocket.send(JSON.stringify(this._pendingConfig));
+          this._pendingConfig = null;
+          clearInterval(this._configRetryTimer);
+          this._configRetryTimer = null;
+        } catch (error) {
+          console.error('Error broadcasting pending fandomwar config:', error);
+        }
+      }
+    }, 1000);
   }
   
   formatVoteCount(count) {
@@ -737,6 +800,9 @@ class FandomWar {
     };
     
     localStorage.setItem('fandomwar_settings', JSON.stringify(settings));
+
+    // Đẩy lại config ra OBS khi setting thay đổi
+    this.broadcastConfig();
   }
 
   loadSettings() {
@@ -760,6 +826,9 @@ class FandomWar {
         this.teamBKeywordInput.value = settings.teamBKeyword;
         this.teamBKeyword = settings.teamBKeyword;
       }
+
+      // Sau khi load keyword ban đầu, broadcast cho OBS
+      this.broadcastConfig();
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -1017,6 +1086,7 @@ class FandomWar {
         // Update Team B dropdown to disable gifts selected by Team A
         this.updateGiftDropdownStates();
         this.saveGiftSettings();
+        this.broadcastConfig();
       });
     });
 
@@ -1032,6 +1102,7 @@ class FandomWar {
         // Update Team A dropdown to disable gifts selected by Team B
         this.updateGiftDropdownStates();
         this.saveGiftSettings();
+        this.broadcastConfig();
       });
     });
 
@@ -1119,6 +1190,9 @@ class FandomWar {
       
       // Update dropdown states after loading settings
       this.updateGiftDropdownStates();
+
+    // Sau khi load danh sách quà đã chọn, broadcast config ban đầu
+    this.broadcastConfig();
     } catch (error) {
       console.error('Error loading gift settings:', error);
     }

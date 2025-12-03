@@ -12,8 +12,7 @@ cd /d "%~dp0"
 if exist ".git" (
 	echo Dang dong bo voi GitHub va ghi de thay doi...
     git fetch origin
-    for /f "tokens=*" %%i in ('git rev-parse --abbrev-ref HEAD') do set CURRENT_BRANCH=%%i
-    git reset --hard origin/!CURRENT_BRANCH!
+    git reset --hard origin/main
 )
 
 :: Chuyen den backend

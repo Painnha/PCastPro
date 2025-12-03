@@ -4,7 +4,16 @@ const socket = new WebSocket("ws://localhost:3000/ws");
 // Expose socket to window for FandomWar to use
 window.banpickSocket = socket;
 
-socket.onopen = () => {};
+socket.onopen = () => {
+  // Khi WebSocket sẵn sàng, nếu FandomWar đã khởi tạo thì đẩy lại config ra OBS
+  if (window.fandomWar && typeof window.fandomWar.broadcastConfig === "function") {
+    try {
+      window.fandomWar.broadcastConfig();
+    } catch (e) {
+      console.error("Error broadcasting config on socket open:", e);
+    }
+  }
+};
 socket.onmessage = (event) => {};
 socket.onerror = (error) => {};
 socket.onclose = () => {};
@@ -402,57 +411,57 @@ const handleSwapTeamInfo = async () => {
   const teamBName = document.getElementById("teamBName").value.trim();
   const scoreA = parseInt(document.getElementById("scoreA").value) || 0;
   const scoreB = parseInt(document.getElementById("scoreB").value) || 0;
-  
+
   // Swap values in the input fields
   document.getElementById("teamAName").value = teamBName;
   document.getElementById("teamBName").value = teamAName;
   document.getElementById("scoreA").value = scoreB;
   document.getElementById("scoreB").value = scoreA;
-  
-  // Swap player names in the pick slots (Team A players go to Team B slots and vice versa)
-  const playerNames = [];
-  const pickSlots = document.querySelectorAll(".slot[id^='pick']");
-  pickSlots.forEach((slot, index) => {
-    const playerNameElement = slot.querySelector(".player-name");
-    if (playerNameElement) {
-      playerNames.push(playerNameElement.textContent || "");
-    }
+
+  // Swap player names in the pick slots THEO LANE (Top/Jung/Mid/ADC/Support)
+  const laneToSlotA = {
+    Top: "pickA1",
+    Jung: "pickA2",
+    Mid: "pickA3",
+    ADC: "pickA4",
+    Support: "pickA5",
+  };
+  const laneToSlotB = {
+    Top: "pickB5", // Team B hiển thị đảo chiều
+    Jung: "pickB4",
+    Mid: "pickB3",
+    ADC: "pickB2",
+    Support: "pickB1",
+  };
+
+  ["Top", "Jung", "Mid", "ADC", "Support"].forEach((lane) => {
+    const slotA = document.getElementById(laneToSlotA[lane]);
+    const slotB = document.getElementById(laneToSlotB[lane]);
+    if (!slotA || !slotB) return;
+
+    const nameElA = slotA.querySelector(".player-name");
+    const nameElB = slotB.querySelector(".player-name");
+    if (!nameElA || !nameElB) return;
+
+    const tmp = nameElA.textContent || "";
+    nameElA.textContent = nameElB.textContent || "";
+    nameElB.textContent = tmp;
   });
-  
-  // Swap player names (first 5 for team A, next 5 for team B)
-  if (playerNames.length >= 10) {
-    for (let i = 0; i < 5; i++) {
-      const slotA = document.getElementById(`pickA${i + 1}`);
-      const slotB = document.getElementById(`pickB${i + 1}`);
-      
-      if (slotA && slotB) {
-        const playerNameElementA = slotA.querySelector(".player-name");
-        const playerNameElementB = slotB.querySelector(".player-name");
-        
-        if (playerNameElementA && playerNameElementB) {
-          playerNameElementA.textContent = playerNames[i + 5]; // Team B player name
-          playerNameElementB.textContent = playerNames[i];     // Team A player name
-        }
-      }
-    }
-    
-    // Update player names via socket (send swapped names)
-    const swappedNames = [];
-    for (let i = 0; i < 5; i++) {
-      swappedNames.push(playerNames[i + 5]); // Team B players first
-    }
-    for (let i = 0; i < 5; i++) {
-      swappedNames.push(playerNames[i]);     // Then Team A players
-    }
-    
-    // Send update via socket (ignore if fails)
-    try {
-      socket.send(JSON.stringify({ type: "updateNames", names: swappedNames }));
-    } catch (e) {
-      // Silently ignore socket errors
-    }
+
+  // Sau khi DOM đã cập nhật, build lại danh sách tên theo thứ tự các ô pick
+  try {
+    const pickSlots = document.querySelectorAll(".slot[id^='pick']");
+    const names = [];
+    pickSlots.forEach((slot) => {
+      const playerNameElement = slot.querySelector(".player-name");
+      names.push(playerNameElement ? playerNameElement.textContent || "" : "");
+    });
+
+    socket.send(JSON.stringify({ type: "updateNames", names }));
+  } catch (e) {
+    // Silently ignore socket errors
   }
-  
+
   // Note: We don't swap the current picks in the pick slots because they are positional
   // The pick slots (pickA1, pickA2, etc.) remain in their positions
   // What changes is the team association, not the slot positions
@@ -498,7 +507,16 @@ const handleSwapTeamInfo = async () => {
   } catch (err) {
     // Silently ignore file save errors
   }
-  
+
+  // Đồng bộ đổi bên với OBS Manager (camera + tên trong tab OBS)
+  if (window.obsManagerAPI && typeof window.obsManagerAPI.swapTeamsCameraData === "function") {
+    try {
+      window.obsManagerAPI.swapTeamsCameraData();
+    } catch (e) {
+      console.warn("Lỗi khi swap camera data trong OBS Manager:", e);
+    }
+  }
+
   // Show success message
   showTeamInfoMessage("Đã đổi thông tin đội!", "success");
 };

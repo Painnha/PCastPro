@@ -24,8 +24,12 @@ body {
   width: 100%;
   max-width: 1400px;
   padding: 10px 20px;
-  background: rgba(0, 0, 0, 0.08);
   border-radius: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
 }
 
 .theme-section {
@@ -59,7 +63,8 @@ body {
   border-radius: 4px;
   font-size: 14px;
   transition: all 0.3s ease;
-  display: none; /* Tạm thời ẩn button hướng dẫn */
+  display: none;
+  /* Tạm thời ẩn button hướng dẫn */
 }
 
 #guideButton:hover {
@@ -267,7 +272,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
+
 }
 
 .previous-buttons {
@@ -729,8 +734,7 @@ body {
   height: 100%;
 }
 
-.fandomwar-header {
-}
+.fandomwar-header {}
 
 .fandomwar-header h3 {
   margin: 0;
@@ -943,9 +947,12 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
   }
+
   50% {
     box-shadow: 0 2px 12px rgba(239, 68, 68, 0.6);
   }
@@ -1255,4 +1262,65 @@ body {
 
 .effect-btn[data-votes="600"]:hover {
   background: #38a169;
+}
+
+/* ======= TAB NAVIGATION ======= */
+.main-tabs {
+  display: flex;
+  background: #111;
+  border-bottom: 2px solid #374151;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: sticky;
+  top: 55px;
+  z-index: 99;
+}
+
+.main-tab {
+  padding: 15px 30px;
+  cursor: pointer;
+  color: #9ca3af;
+  font-weight: 600;
+  transition: 0.2s;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+}
+
+.main-tab:hover {
+  color: white;
+  background: #1a1a1a;
+}
+
+.main-tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.tab-content {
+  display: none !important;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+.tab-content.active {
+  display: block !important;
+}
+
+/* Ensure tab content appears right after tabs and doesn't push content down */
+.main-tabs+.tab-content {
+  margin-top: 0;
+}
+
+.banpick-tab-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.obs-manager-tab-content {
+  overflow: hidden;
 }

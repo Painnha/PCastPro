@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Pro Controller (Fixed)</title>
+    <script src="https://unpkg.com/obs-websocket-js@5.0.0/dist/obs-ws.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #111827;
+            --bg-panel: #1f2937;
+            --border: #374151;
+            --primary: #3b82f6;
+            --accent: #8b5cf6;
+            --text: #f3f4f6;
+            --text-dim: #9ca3af;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-dark); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* HEADER */
+        header { background: var(--bg-panel); padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-weight: 700; font-size: 18px; color: var(--primary); display: flex; gap: 10px; align-items: center; }
+        .conn-controls input { background: #111; border: 1px solid var(--border); color: white; padding: 6px; border-radius: 4px; width: 100px; font-size: 12px; }
+        .btn-sm { padding: 6px 12px; border-radius: 4px; border: none; font-weight: 600; cursor: pointer; font-size: 12px; }
+        .btn-connect { background: var(--success); color: white; }
+
+        /* NAV TABS */
+        .tabs { display: flex; background: #111; border-bottom: 1px solid var(--border); }
+        .tab { padding: 15px 30px; cursor: pointer; color: var(--text-dim); font-weight: 600; transition: 0.2s; border-bottom: 3px solid transparent; }
+        .tab:hover { color: white; background: #1a1a1a; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+
+        /* MAIN CONTENT */
+        main { flex: 1; overflow: hidden; position: relative; }
+        .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+        .view.active { display: block; }
+
+        /* --- SETUP VIEW STYLES --- */
+        .scan-bar { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+        .scene-block { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; overflow: hidden; }
+        .scene-header { padding: 12px 20px; background: #2d3748; cursor: pointer; display: flex; justify-content: space-between; font-weight: 600; }
+        .scene-header:hover { background: #4a5568; }
+        .scene-items { display: none; padding: 10px; }
+        .scene-items.open { display: block; }
+
+        .source-row { display: grid; grid-template-columns: 2fr 1fr 2.5fr 1.5fr 1.5fr; gap: 10px; align-items: center; padding: 8px; border-bottom: 1px solid #333; font-size: 13px; }
+        .source-content { font-size: 11px; color: #aaa; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .source-content-input { width: 100%; background: #222; border: 1px solid #444; color: white; padding: 6px 8px; border-radius: 4px; font-size: 11px; font-family: monospace; }
+        .source-content-input:focus { outline: none; border-color: var(--primary); }
+        .source-row:last-child { border-bottom: none; }
+        .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #444; color: #ccc; }
+        
+        /* Action Buttons in Setup */
+        .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); width: 32px; height: 32px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .icon-btn:hover { color: white; border-color: white; }
+        .icon-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .icon-btn.linked { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Link Groups Management */
+        .link-groups-section { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .link-group-item { background: #111; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid var(--accent); }
+        .link-group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .link-group-title { font-weight: 600; color: white; font-size: 14px; }
+        .link-group-sources { display: flex; flex-wrap: wrap; gap: 5px; font-size: 12px; }
+        .source-tag { background: #333; padding: 4px 8px; border-radius: 4px; color: #ccc; display: flex; align-items: center; gap: 5px; }
+        .source-tag .remove-btn { cursor: pointer; color: var(--danger); font-size: 10px; }
+        .source-tag .remove-btn:hover { color: white; }
+        .add-source-btn { background: var(--accent); color: white; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        .add-source-btn:hover { background: #9d6cf8; }
+
+        /* Popup Sidebar for Adding Sources */
+        .source-picker-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: none; }
+        .source-picker-overlay.active { display: block; }
+        .source-picker-sidebar { position: fixed; right: 0; top: 0; bottom: 0; width: 600px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: -4px 0 20px rgba(0,0,0,0.5); z-index: 1001; transform: translateX(100%); transition: transform 0.3s ease; }
+        .source-picker-sidebar.active { transform: translateX(0); }
+        .source-picker-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .source-picker-title { font-weight: 600; font-size: 16px; color: white; }
+        .source-picker-close { background: transparent; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+        .source-picker-close:hover { background: #333; color: white; }
+        .source-picker-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; gap: 20px; }
+        .scenes-column { flex: 1; }
+        .sources-column { flex: 1; border-left: 1px solid var(--border); padding-left: 20px; }
+        .scene-list-item { padding: 10px 15px; background: #222; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; }
+        .scene-list-item:hover { background: #333; }
+        .scene-list-item.active { background: var(--primary); }
+        .source-list-item { padding: 10px 15px; background: #222; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .source-list-item:hover { background: #333; }
+        .source-list-item.added { background: var(--success); opacity: 0.7; cursor: not-allowed; }
+        .column-title { font-weight: 600; font-size: 14px; color: var(--text-dim); margin-bottom: 10px; }
+
+        /* --- DASHBOARD VIEW STYLES --- */
+        .dashboard-grid { display: grid; grid-template-columns: 500px 1fr; gap: 20px; height: 100%; overflow: hidden; }
+        .panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header { padding: 12px 15px; background: rgba(0,0,0,0.2); font-weight: bold; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;}
+        
+        .panel-content { padding: 15px; overflow-y: auto; flex: 1; min-height: 0; }
+
+        /* Pinned Item Style */
+        .pinned-item { background: #111; padding: 15px; border-radius: 6px; margin-bottom: 12px; border-left: 4px solid var(--primary); }
+        .pinned-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: var(--text-dim); }
+        .pinned-controls { display: flex; gap: 5px; margin-top: 8px; }
+        .input-dark { width: 100%; background: #222; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; }
+        
+        /* Camera Monitor - Nhỏ lại nhưng giữ tỉ lệ 16:9 (1920x1080) */
+        .camera-panel { flex: 0 0 auto; width: 700px; }
+        .camera-panel .panel-header { padding: 10px 15px; }
+        .camera-video-container { 
+            width: 100%; 
+            aspect-ratio: 16/9; 
+            max-height: 400px;
+            background: #000; 
+            border-radius: 4px; 
+            overflow: hidden; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin: 0 auto;
+        }
+        video#camPreview { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            background: #000;
+            display: block;
+        }
+        
+        /* Right side layout */
+        .dashboard-right-column { display: flex; flex-direction: column; gap: 15px; height: 100%; overflow: hidden; }
+        .dashboard-top-section { display: flex; flex-direction: column; gap: 15px; min-height: 0; overflow: hidden; }
+        .dashboard-bottom-section { flex: 0 0 auto; }
+        
+        /* Scene Grid - Giới hạn chiều cao */
+        .scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+        .scene-btn { background: #374151; color: white; border: none; padding: 15px 8px; border-radius: 6px; cursor: pointer; font-weight: 600; text-align: center; font-size: 12px; }
+        .scene-btn:hover { background: #4b5563; }
+        .scene-btn.active { background: var(--primary); box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo"><i class="fas fa-layer-group"></i> OBS MANAGER</div>
+        <div class="conn-controls">
+            <input type="text" id="ip" value="localhost" placeholder="IP">
+            <input type="text" id="port" value="4455" placeholder="Port">
+            <input type="password" id="pwd" placeholder="Password">
+            <button class="btn-sm btn-connect" onclick="connectOBS()" id="btnConnect">Connect</button>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('dashboard')">MÀN HÌNH QUẢN LÝ</div>
+        <div class="tab" onclick="switchTab('setup')">SETUP & LIÊN KẾT</div>
+    </div>
+
+    <main>
+        <div id="setup" class="view">
+            <div class="scan-bar">
+                <button class="btn-sm" style="background: var(--primary); color: white; font-size: 14px; padding: 10px 20px;" onclick="scanSources()">
+                    <i class="fas fa-sync"></i> Quét Source từ OBS
+                </button>
+                <span style="font-size: 13px; color: #888;">*Quét lại khi bạn thêm source mới trong OBS</span>
+            </div>
+            
+            <!-- Link Groups Management Section -->
+            <div class="link-groups-section">
+                <h3 style="margin: 0 0 15px 0; color: white; font-size: 16px;">
+                    <i class="fas fa-link"></i> QUẢN LÝ NHÓM LIÊN KẾT
+                </h3>
+                <div id="link-groups-container">
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        Chưa có nhóm liên kết nào. Tạo nhóm bằng cách click nút <i class="fas fa-link"></i> ở source trong danh sách bên dưới.
+                    </div>
+                </div>
+            </div>
+
+            <div id="setup-container">
+                <div style="text-align: center; color: #666; margin-top: 50px;">Chưa có dữ liệu. Hãy kết nối và bấm Quét.</div>
+            </div>
+        </div>
+
+        <!-- Source Picker Popup -->
+        <div class="source-picker-overlay" id="sourcePickerOverlay" onclick="closeSourcePicker()">
+            <div class="source-picker-sidebar" id="sourcePickerSidebar" onclick="event.stopPropagation()">
+                <div class="source-picker-header">
+                    <div class="source-picker-title" id="sourcePickerTitle">Thêm Source vào Nhóm</div>
+                    <button class="source-picker-close" onclick="closeSourcePicker()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="source-picker-content">
+                    <div class="scenes-column">
+                        <div class="column-title">Scenes</div>
+                        <div id="scenes-list-container"></div>
+                    </div>
+                    <div class="sources-column" id="sources-column">
+                        <div class="column-title">Sources</div>
+                        <div style="color: #666; font-size: 12px; padding: 10px;">Chọn một scene để xem sources</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboard" class="view active">
+            <div class="dashboard-grid">
+                
+                <div class="panel">
+                    <div class="panel-header">
+                        <span><i class="fas fa-thumbtack"></i> PINNED SOURCES</span>
+                        <button class="icon-btn" onclick="renderDashboard()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div class="panel-content" id="pinned-container">
+                        <div style="text-align: center; color: #666; margin-top: 20px;">
+                            Chưa có source nào được ghim.<br>Vào tab <b>Setup</b> để ghim source quan trọng.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-right-column">
+                    <div class="dashboard-top-section">
+                        <div class="panel" style="flex: 0 0 auto;">
+                            <div class="panel-header"><span><i class="fas fa-images"></i> CHUYỂN CẢNH (SCENES)</span></div>
+                            <div class="panel-content" style="max-height: 300px; overflow-y: auto;">
+                                <div class="scene-grid" id="scene-grid">
+                                    </div>
+                            </div>
+                        </div>
+
+                        <div class="panel" style="flex: 0 0 auto;">
+                            <div class="panel-header"><span><i class="fas fa-film"></i> HIGHLIGHT CONTROLS</span></div>
+                            <div class="panel-content">
+                                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                    <button class="btn-sm" style="background: var(--danger); color: white; flex: 1; padding: 15px; font-size: 14px;" onclick="saveReplayBuffer()">
+                                        <i class="fas fa-save"></i> LƯU BUFFER NGAY
+                                    </button>
+                                </div>
+                                <label style="font-size: 12px; color: #aaa;">Thay đổi Video Highlight (Dán đường dẫn file):</label>
+                                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                                    <input type="text" class="input-dark" id="highlight-path" placeholder="C:/Videos/highlight.mp4">
+                                    <button class="btn-sm" style="background: var(--primary); color: white;" onclick="updateHighlight()">Set</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-bottom-section">
+                        <div class="panel camera-panel" style="flex: 0 0 auto;">
+                            <div class="panel-header">
+                                <span><i class="fas fa-video"></i> MONITOR (Virtual Camera)</span>
+                                <button class="btn-sm" style="background: #333; color: white;" onclick="startCamera()">Bật Cam</button>
+                            </div>
+                            <div style="padding: 8px; background: black;">
+                                <div class="camera-video-container">
+                                    <video id="camPreview" autoplay playsinline muted></video>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const obs = new OBSWebSocket();
+        
+        // --- DATA STORE ---
+        let STORE = {
+            pinned: [],   // ['sourceName1', 'sourceName2']
+            links: {},    // { 'groupName': ['sourceA', 'sourceB'] }
+            contents: {}, // { 'sourceName': 'lastKnownContent/url/path' }
+        };
+
+        // Cache danh sách source sau khi scan
+        let CACHED_SCENES = [];
+
+        // --- 1. CONNECTION ---
+        async function connectOBS() {
+            const btn = document.getElementById('btnConnect');
+            try {
+                btn.innerText = "...";
+                await obs.connect(`ws://${document.getElementById('ip').value}:${document.getElementById('port').value}`, document.getElementById('pwd').value);
+                btn.innerText = "Connected";
+                btn.style.background = "#10b981";
+                
+                loadStore();
+                scanSources();
+                renderLinkGroups();
+                obs.on('CurrentProgramSceneChanged', (data) => {
+                    highlightActiveScene(data.sceneName);
+                });
+
+            } catch (e) {
+                alert("Lỗi kết nối: " + e.message);
+                btn.innerText = "Connect";
+                btn.style.background = "#3b82f6";
+            }
+        }
+
+        // --- 2. SETUP & SCAN LOGIC ---
+        async function scanSources() {
+            try {
+                const resp = await obs.call('GetSceneList');
+                CACHED_SCENES = resp.scenes.reverse(); 
+                
+                const container = document.getElementById('setup-container');
+                const sceneGrid = document.getElementById('scene-grid');
+                
+                container.innerHTML = '';
+                sceneGrid.innerHTML = '';
+
+                // Render Dashboard Buttons
+                CACHED_SCENES.forEach(scene => {
+                    const btn = document.createElement('button');
+                    btn.className = 'scene-btn';
+                    btn.id = `btn-scene-${scene.sceneName}`;
+                    btn.innerText = scene.sceneName;
+                    btn.onclick = () => obs.call('SetCurrentProgramScene', { sceneName: scene.sceneName });
+                    sceneGrid.appendChild(btn);
+
+                    // Render Setup Tree
+                    const sceneBlock = document.createElement('div');
+                    sceneBlock.className = 'scene-block';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'scene-header';
+                    header.innerHTML = `<span>${scene.sceneName}</span> <i class="fas fa-chevron-down"></i>`;
+                    
+                    // Logic mở/đóng và load items
+                    header.onclick = async () => {
+                        const content = sceneBlock.querySelector('.scene-items');
+                        if(content.innerHTML === '') {
+                            await renderSceneItems(scene.sceneName, content);
+                        }
+                        content.classList.toggle('open');
+                    };
+
+                    const itemsDiv = document.createElement('div');
+                    itemsDiv.className = 'scene-items';
+                    
+                    sceneBlock.appendChild(header);
+                    sceneBlock.appendChild(itemsDiv);
+                    container.appendChild(sceneBlock);
+                });
+
+                renderDashboard(); // Refresh UI Dashboard
+                renderLinkGroups(); // Refresh Link Groups
+            } catch (e) {
+                alert("Lỗi quét Scene: " + e.message);
+            }
+        }
+
+        async function renderSceneItems(sceneName, container) {
+            container.innerHTML = '<div style="color:#888; text-align:center">Loading...</div>';
+            
+            try {
+                // Gọi hàm đệ quy đã fix lỗi
+                let items = await getItemsRecursively(sceneName);
+                
+                container.innerHTML = ''; 
+                
+                if(items.length === 0) {
+                    container.innerHTML = '<div style="font-size:12px; padding:5px;">Trống</div>';
+                    return;
+                }
+
+                // Render items với nội dung
+                for (let item of items) {
+                    // Chỉ hiển thị Text, Browser, Media, Image
+                    if(['input', 'scene'].includes(item.sourceType) || item.inputKind) { 
+                         const row = document.createElement('div');
+                         row.className = 'source-row';
+                         
+                         const isPinned = STORE.pinned.includes(item.sourceName);
+                         const linkGroup = getLinkGroup(item.sourceName);
+                         const isGroupItem = item.groupName ? `<span style='color:#e67e22'>[Group: ${item.groupName}]</span>` : '';
+
+                         // Lấy nội dung đầy đủ của source
+                         let sourceContent = '';
+                         let contentType = ''; // 'text', 'url', 'local_file', 'file'
+                         try {
+                             const inputSettings = await obs.call('GetInputSettings', { inputName: item.sourceName });
+                             const settings = inputSettings.inputSettings || {};
+                             
+                             // Lấy text, url, hoặc local_file tùy loại source - LẤY ĐẦY ĐỦ
+                             if (settings.text) {
+                                 sourceContent = String(settings.text || '');
+                                 contentType = 'text';
+                             } else if (settings.url) {
+                                 sourceContent = String(settings.url || '');
+                                 contentType = 'url';
+                             } else if (settings.local_file) {
+                                 sourceContent = String(settings.local_file || '');
+                                 contentType = 'local_file';
+                             } else if (settings.file) {
+                                 sourceContent = String(settings.file || '');
+                                 contentType = 'file';
+                             }
+                         } catch(e) {
+                             sourceContent = '';
+                             contentType = '';
+                         }
+
+                         // Lưu lại nội dung vào STORE để dùng cho Dashboard (pinned)
+                         try {
+                             if (!STORE.contents) STORE.contents = {};
+                             // Chỉ lưu khi có nội dung (tránh ghi rác)
+                             if (sourceContent) {
+                                 STORE.contents[item.sourceName] = sourceContent;
+                             }
+                         } catch (eStore) {
+                             console.warn('Không thể lưu contents vào STORE:', eStore);
+                         }
+
+                         // Escape HTML để tránh lỗi khi hiển thị
+                         const escapedContent = sourceContent.replace(/"/g, '&quot;').replace(/'/g, "&#39;");
+                         const escapedTitle = sourceContent.replace(/"/g, '&quot;').replace(/'/g, "&#39;");
+                         const escapedSourceNameAttr = item.sourceName.replace(/"/g, '&quot;');
+                         const escapedContentTypeAttr = contentType.replace(/"/g, '&quot;');
+
+                         row.innerHTML = `
+                            <div style="display:flex; flex-direction:column;">
+                                <span style="font-weight:bold; color: white;">${item.sourceName}</span>
+                                <span class="badge" style="width:fit-content">${item.inputKind || 'Source'} ${isGroupItem}</span>
+                            </div>
+                            
+                            <div style="font-size: 11px; color: var(--accent);">
+                                ${linkGroup ? `<i class="fas fa-link"></i> ${linkGroup}` : ''}
+                            </div>
+
+                            <div style="display:flex; gap:5px; align-items:center;">
+                                <input type="text" 
+                                    class="source-content-input" 
+                                    value="${escapedContent}" 
+                                    placeholder="Nội dung/URL/Đường dẫn..."
+                                    data-source-name="${escapedSourceNameAttr}"
+                                    data-content-type="${escapedContentTypeAttr}"
+                                    onchange="updateSourceFromSetupField(this)"
+                                    onkeydown="if(event.key === 'Enter') { updateSourceFromSetupField(this); this.blur(); }"
+                                    title="${escapedTitle || 'Không có nội dung'}"
+                                >
+                                <button class="icon-btn" 
+                                    onclick="updateSourceFromSetupField(this.previousElementSibling)" 
+                                    title="Lưu"
+                                    style="flex-shrink: 0;">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                            </div>
+
+                            <div style="display:flex; gap:5px;">
+                                <button class="icon-btn ${isPinned?'active':''}" onclick="togglePin('${item.sourceName}')" title="Ghim">
+                                    <i class="fas fa-thumbtack"></i>
+                                </button>
+                                <button class="icon-btn ${linkGroup?'linked':''}" onclick="setLink('${item.sourceName}')" title="Liên kết">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                            </div>
+
+                            <div style="display:flex; gap:5px; justify-content: flex-end;">
+                                <button class="icon-btn" onclick="toggleVis('${sceneName}', ${item.sceneItemId})" title="Ẩn/Hiện">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                ${ (item.inputKind === 'browser_source') ? 
+                                    `<button class="icon-btn" onclick="reloadBrowser('${item.sourceName}')" title="Reload Browser">
+                                        <i class="fas fa-sync"></i>
+                                    </button>` : '' 
+                                }
+                            </div>
+                         `;
+                         container.appendChild(row);
+                    }
+                }
+
+            } catch(e) {
+                container.innerHTML = `Error: ${e.message}`;
+            }
+        }
+
+        async function getItemsRecursively(sceneNameOrGroupName, parentGroup = null) {
+            let list = [];
+            try {
+                const resp = await obs.call('GetSceneItemList', { sceneName: sceneNameOrGroupName });
+                
+                for (let item of resp.sceneItems) {
+                    // Lưu thông tin group cha
+                    item.groupName = parentGroup;
+                    
+                    if (item.isGroup) {
+                        // Thêm bản thân Group vào list (để hiển thị)
+                        list.push(item);
+                        
+                        // Đệ quy chui vào group
+                        // QUAN TRỌNG: Chỉ gọi đệ quy nếu đây thực sự là group source
+                        try {
+                            const subItems = await getItemsRecursively(item.sourceName, item.sourceName);
+                            list = list.concat(subItems);
+                        } catch (errGroup) {
+                            console.warn(`Không thể chui vào group ${item.sourceName}`, errGroup);
+                        }
+                    } else {
+                        list.push(item);
+                    }
+                }
+            } catch (e) {
+                // Bắt lỗi "Not a scene" để không chết chương trình
+                console.warn(`Skip quét: ${sceneNameOrGroupName} không phải là scene/group hợp lệ.`);
+            }
+            return list;
+        }
+
+
+        // --- 3. PIN & LINK LOGIC ---
+
+        function togglePin(sourceName) {
+            if(STORE.pinned.includes(sourceName)) {
+                STORE.pinned = STORE.pinned.filter(s => s !== sourceName);
+            } else {
+                STORE.pinned.push(sourceName);
+            }
+            saveStore();
+            const btn = event.currentTarget;
+            btn.classList.toggle('active');
+            renderDashboard();
+        }
+
+        function setLink(sourceName) {
+            const currentGroup = getLinkGroup(sourceName);
+            const newGroup = prompt("Nhập tên nhóm liên kết (nội dung):", currentGroup || "");
+            if(newGroup === null) return; 
+            
+            if(currentGroup) {
+                STORE.links[currentGroup] = STORE.links[currentGroup].filter(s => s !== sourceName);
+                if(STORE.links[currentGroup].length === 0) delete STORE.links[currentGroup];
+            }
+
+            if(newGroup.trim() !== "") {
+                if(!STORE.links[newGroup]) STORE.links[newGroup] = [];
+                STORE.links[newGroup].push(sourceName);
+            }
+            saveStore();
+            const btn = event.currentTarget;
+            if(newGroup) btn.classList.add('linked'); else btn.classList.remove('linked');
+            renderDashboard();
+            renderLinkGroups();
+        }
+
+        function getLinkGroup(sourceName) {
+            for(let group in STORE.links) {
+                if(STORE.links[group].includes(sourceName)) return group;
+            }
+            return null;
+        }
+
+        // --- LINK GROUPS MANAGEMENT ---
+        
+        // Render danh sách các nhóm liên kết
+        function renderLinkGroups() {
+            const container = document.getElementById('link-groups-container');
+            container.innerHTML = '';
+
+            const groups = Object.keys(STORE.links);
+            if(groups.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Chưa có nhóm liên kết nào. Tạo nhóm bằng cách click nút <i class="fas fa-link"></i> ở source trong danh sách bên dưới.</div>';
+                return;
+            }
+
+            groups.forEach(groupName => {
+                const sources = STORE.links[groupName] || [];
+                const groupEl = document.createElement('div');
+                groupEl.className = 'link-group-item';
+                
+                groupEl.innerHTML = `
+                    <div class="link-group-header">
+                        <div class="link-group-title">${groupName.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}</div>
+                        <button class="add-source-btn" onclick="openSourcePickerForGroup('${groupName.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="Thêm source vào nhóm">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="link-group-sources">
+                        ${sources.map(sourceName => `
+                            <div class="source-tag">
+                                <span>${sourceName}</span>
+                                <span class="remove-btn" onclick="removeSourceFromGroup('${groupName.replace(/'/g, "\\'")}', '${sourceName.replace(/'/g, "\\'")}')" title="Xóa">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(groupEl);
+            });
+        }
+
+        // Xóa source khỏi nhóm
+        function removeSourceFromGroup(groupName, sourceName) {
+            if(confirm(`Bạn có chắc muốn xóa "${sourceName}" khỏi nhóm "${groupName}"?`)) {
+                if(STORE.links[groupName]) {
+                    STORE.links[groupName] = STORE.links[groupName].filter(s => s !== sourceName);
+                    if(STORE.links[groupName].length === 0) {
+                        delete STORE.links[groupName];
+                    }
+                    saveStore();
+                    renderLinkGroups();
+                    renderDashboard();
+                }
+            }
+        }
+
+        // Mở popup để thêm source vào nhóm
+        let currentGroupName = '';
+        function openSourcePickerForGroup(groupName) {
+            currentGroupName = groupName;
+            const titleEl = document.getElementById('sourcePickerTitle');
+            titleEl.textContent = `Thêm Source vào: ${groupName}`;
+            document.getElementById('sourcePickerOverlay').classList.add('active');
+            document.getElementById('sourcePickerSidebar').classList.add('active');
+            
+            renderScenesList();
+            document.getElementById('sources-column').innerHTML = `
+                <div class="column-title">Sources</div>
+                <div style="color: #666; font-size: 12px; padding: 10px;">Chọn một scene để xem sources</div>
+            `;
+        }
+
+        // Đóng popup
+        function closeSourcePicker() {
+            document.getElementById('sourcePickerOverlay').classList.remove('active');
+            document.getElementById('sourcePickerSidebar').classList.remove('active');
+            currentGroupName = '';
+        }
+
+        // Render danh sách scenes trong popup
+        function renderScenesList() {
+            const container = document.getElementById('scenes-list-container');
+            container.innerHTML = '';
+
+            if(CACHED_SCENES.length === 0) {
+                container.innerHTML = '<div style="color: #666; font-size: 12px; padding: 10px;">Chưa có scene nào. Hãy quét lại.</div>';
+                return;
+            }
+
+            CACHED_SCENES.forEach(scene => {
+                const sceneEl = document.createElement('div');
+                sceneEl.className = 'scene-list-item';
+                sceneEl.textContent = scene.sceneName;
+                sceneEl.onmouseenter = () => loadSourcesForScene(scene.sceneName);
+                sceneEl.onclick = () => {
+                    document.querySelectorAll('.scene-list-item').forEach(el => el.classList.remove('active'));
+                    sceneEl.classList.add('active');
+                };
+                container.appendChild(sceneEl);
+            });
+        }
+
+        // Load sources của một scene khi hover
+        async function loadSourcesForScene(sceneName) {
+            const container = document.getElementById('sources-column');
+            container.innerHTML = '<div class="column-title">Sources</div><div style="color: #888; font-size: 12px; padding: 10px;">Đang tải...</div>';
+
+            try {
+                const items = await getItemsRecursively(sceneName);
+                const sourcesInGroup = STORE.links[currentGroupName] || [];
+
+                container.innerHTML = '<div class="column-title">Sources</div>';
+
+                if(items.length === 0) {
+                    container.innerHTML += '<div style="color: #666; font-size: 12px; padding: 10px;">Scene này không có source nào.</div>';
+                    return;
+                }
+
+                // Lọc chỉ các source có inputKind (Text, Browser, Media, Image)
+                const validItems = items.filter(item => 
+                    (['input', 'scene'].includes(item.sourceType) || item.inputKind)
+                );
+
+                if(validItems.length === 0) {
+                    container.innerHTML += '<div style="color: #666; font-size: 12px; padding: 10px;">Không có source hợp lệ.</div>';
+                    return;
+                }
+
+                validItems.forEach(item => {
+                    const isAlreadyAdded = sourcesInGroup.includes(item.sourceName);
+                    const sourceEl = document.createElement('div');
+                    sourceEl.className = 'source-list-item' + (isAlreadyAdded ? ' added' : '');
+                    sourceEl.innerHTML = `
+                        <div>
+                            <div style="font-weight: 600; color: white; font-size: 13px;">${item.sourceName}</div>
+                            <div style="font-size: 11px; color: #aaa;">${item.inputKind || 'Source'}</div>
+                        </div>
+                        ${isAlreadyAdded ? '<span style="color: var(--success);"><i class="fas fa-check"></i> Đã thêm</span>' : ''}
+                    `;
+                    
+                    if(!isAlreadyAdded) {
+                        sourceEl.onclick = () => addSourceToGroup(currentGroupName, item.sourceName);
+                    }
+                    
+                    container.appendChild(sourceEl);
+                });
+            } catch(e) {
+                container.innerHTML = `<div style="color: var(--danger); font-size: 12px; padding: 10px;">Lỗi: ${e.message}</div>`;
+            }
+        }
+
+        // Thêm source vào nhóm
+        function addSourceToGroup(groupName, sourceName) {
+            if(!STORE.links[groupName]) {
+                STORE.links[groupName] = [];
+            }
+            
+            if(!STORE.links[groupName].includes(sourceName)) {
+                STORE.links[groupName].push(sourceName);
+                saveStore();
+                renderLinkGroups();
+                renderDashboard();
+                
+                // Reload sources list để cập nhật trạng thái
+                const activeScene = document.querySelector('.scene-list-item.active');
+                if(activeScene) {
+                    loadSourcesForScene(activeScene.textContent);
+                } else {
+                    // Nếu không có scene nào active, reload scene đang hover
+                    const hoveredScene = document.querySelector('.scene-list-item:hover');
+                    if(hoveredScene) {
+                        loadSourcesForScene(hoveredScene.textContent);
+                    }
+                }
+            }
+        }
+
+
+        // --- 4. DASHBOARD RENDER & ACTIONS ---
+
+        async function renderDashboard() {
+            const container = document.getElementById('pinned-container');
+            container.innerHTML = '';
+
+            if(STORE.pinned.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666; margin-top: 20px;">Chưa ghim source nào.</div>';
+                return;
+            }
+
+            // Đảm bảo STORE.contents tồn tại
+            if (!STORE.contents) STORE.contents = {};
+
+            // Load nội dung từ OBS cho mỗi pinned source nếu chưa có
+            let hasNewContent = false;
+            for (let sourceName of STORE.pinned) {
+                // Nếu chưa có nội dung trong STORE, thử load từ OBS
+                if (!STORE.contents[sourceName] || STORE.contents[sourceName] === '') {
+                    try {
+                        const inputSettings = await obs.call('GetInputSettings', { inputName: sourceName });
+                        const settings = inputSettings.inputSettings || {};
+                        
+                        // Lấy text, url, hoặc local_file tùy loại source
+                        if (settings.text) {
+                            STORE.contents[sourceName] = String(settings.text || '');
+                            hasNewContent = true;
+                        } else if (settings.url) {
+                            STORE.contents[sourceName] = String(settings.url || '');
+                            hasNewContent = true;
+                        } else if (settings.local_file) {
+                            STORE.contents[sourceName] = String(settings.local_file || '');
+                            hasNewContent = true;
+                        } else if (settings.file) {
+                            STORE.contents[sourceName] = String(settings.file || '');
+                            hasNewContent = true;
+                        } else {
+                            STORE.contents[sourceName] = '';
+                        }
+                    } catch(e) {
+                        console.warn(`Không thể load nội dung cho ${sourceName}:`, e);
+                        STORE.contents[sourceName] = '';
+                    }
+                }
+            }
+            // Lưu lại nếu có nội dung mới
+            if (hasNewContent) {
+                saveStore();
+            }
+
+            // Render các pinned items
+            STORE.pinned.forEach(sourceName => {
+                const group = getLinkGroup(sourceName);
+                const currentValue = STORE.contents[sourceName] || '';
+                const escapedValue = String(currentValue).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                const escapedSourceName = sourceName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                
+                const el = document.createElement('div');
+                el.className = 'pinned-item';
+                
+                let html = `
+                    <div class="pinned-header">
+                        <span style="font-weight:bold; color:white; font-size:14px;">${sourceName}</span>
+                        ${group ? `<span class="badge" style="background:var(--accent); color:white">${group}</span>` : ''}
+                    </div>
+                    <div style="margin-bottom:5px;">
+                        <input type="text" class="input-dark" placeholder="Nội dung/URL..." 
+                            value="${escapedValue}"
+                            onchange="updateSourceContent('${escapedSourceName}', this.value)"
+                            onkeydown="if(event.key === 'Enter') updateSourceContent('${escapedSourceName}', this.value)"
+                            title="${escapedValue || 'Không có nội dung'}"
+                        >
+                    </div>
+                    <div class="pinned-controls">
+                        <button class="btn-sm" style="background:#333; color:white; width:40px" 
+                                onclick="toggleSourceVisiblityLinked('${escapedSourceName}')" title="Ẩn/Hiện (Linked)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        
+                        <button class="btn-sm" style="background:#333; color:white; flex:1" 
+                                onclick="reloadBrowser('${escapedSourceName}')">
+                            <i class="fas fa-sync"></i> Reload ${group ? '(All)' : ''}
+                        </button>
+                    </div>
+                `;
+                el.innerHTML = html;
+                container.appendChild(el);
+            });
+        }
+
+        // --- CORE ACTION FUNCTIONS ---
+
+        async function updateSourceContent(sourceName, value) {
+            const group = getLinkGroup(sourceName);
+            let targets = [sourceName];
+
+            if(group && STORE.links[group]) {
+                targets = STORE.links[group];
+            }
+
+            // Gọi từng request riêng lẻ (vì callBatch không tồn tại trong OBS WebSocket JS 5.0.0)
+            try {
+                const promises = targets.map(name => 
+                    obs.call('SetInputSettings', {
+                        inputName: name,
+                        inputSettings: { 
+                            text: value,         
+                            url: value,          
+                            local_file: value    
+                        }
+                    })
+                );
+                
+                await Promise.all(promises);
+
+                // Cập nhật STORE.contents để Dashboard luôn hiển thị đúng nội dung
+                if (!STORE.contents) STORE.contents = {};
+                targets.forEach(name => {
+                    STORE.contents[name] = value;
+                });
+                saveStore();
+
+                const inputs = document.querySelectorAll('.input-dark');
+                inputs.forEach(i => { if(i.value === value) i.style.borderColor = '#10b981'; });
+                setTimeout(() => inputs.forEach(i => i.style.borderColor = '#444'), 1000);
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        // Helper function để cập nhật từ input field (an toàn hơn)
+        async function updateSourceFromSetupField(inputElement) {
+            const sourceName = inputElement.getAttribute('data-source-name');
+            const contentType = inputElement.getAttribute('data-content-type');
+            const value = inputElement.value;
+            await updateSourceFromSetup(sourceName, contentType, value);
+        }
+
+        // Cập nhật source từ màn hình Setup (với full path và loại content)
+        async function updateSourceFromSetup(sourceName, contentType, value) {
+            // Cho phép value rỗng (để có thể xóa nội dung)
+            value = value || '';
+
+            const group = getLinkGroup(sourceName);
+            let targets = [sourceName];
+
+            if(group && STORE.links[group]) {
+                targets = STORE.links[group];
+            }
+
+            // Tạo settings object dựa trên loại content
+            let inputSettings = {};
+            
+            if (contentType === 'text') {
+                inputSettings = { text: value };
+            } else if (contentType === 'url') {
+                inputSettings = { url: value };
+            } else if (contentType === 'local_file') {
+                inputSettings = { local_file: value };
+            } else if (contentType === 'file') {
+                inputSettings = { file: value };
+            } else {
+                // Nếu không biết loại, thử tất cả
+                inputSettings = { 
+                    text: value,
+                    url: value,
+                    local_file: value,
+                    file: value
+                };
+            }
+
+            // Gọi từng request riêng lẻ (vì callBatch không tồn tại trong OBS WebSocket JS 5.0.0)
+            try {
+                const promises = targets.map(name => 
+                    obs.call('SetInputSettings', {
+                        inputName: name,
+                        inputSettings: inputSettings
+                    })
+                );
+                
+                await Promise.all(promises);
+                
+                // Cập nhật STORE.contents để Dashboard và các nơi khác dùng chung
+                if (!STORE.contents) STORE.contents = {};
+                targets.forEach(name => {
+                    STORE.contents[name] = value;
+                });
+                saveStore();
+                
+                // Visual feedback - tìm tất cả input có cùng source name
+                const inputs = document.querySelectorAll(`input[data-source-name="${sourceName}"]`);
+                inputs.forEach(input => {
+                    input.style.borderColor = '#10b981';
+                    setTimeout(() => {
+                        input.style.borderColor = '#444';
+                    }, 1500);
+                });
+                
+                console.log(`Đã cập nhật ${targets.length} source(s): ${targets.join(', ')}`);
+            } catch(e) {
+                console.error('Lỗi cập nhật source:', e);
+                alert('Lỗi cập nhật: ' + e.message);
+            }
+        }
+
+        async function updateHighlight() {
+            // Cập nhật path highlight nhưng cần user map source hoặc nhập tên source thủ công.
+            // Ở phiên bản này ta đơn giản hóa: Tìm tất cả Media source đang ghim hoặc linked để update?
+            // Để an toàn: User nên ghim source highlight vào dashboard rồi paste link ở đó.
+            // Khu vực này sẽ chỉ là shortcut nếu user đã setup "Pinned Item" là highlight.
+            alert("Bạn hãy Ghim (Pin) source Highlight vào Dashboard, sau đó dán link vào ô nhập liệu của source đó nhé!");
+        }
+
+        // 1. Reload Browser (Có hỗ trợ Linked)
+        async function reloadBrowser(sourceName) {
+            const group = getLinkGroup(sourceName);
+            // Nếu có group thì lấy cả list, không thì chỉ lấy chính nó
+            const targets = (group && STORE.links[group]) ? STORE.links[group] : [sourceName];
+
+            // Gọi từng request riêng lẻ (vì callBatch không tồn tại trong OBS WebSocket JS 5.0.0)
+            try {
+                const promises = targets.map(name => 
+                    obs.call('PressInputPropertiesButton', { 
+                        inputName: name, 
+                        propertyName: 'refreshnocache' 
+                    })
+                );
+                
+                await Promise.all(promises);
+                console.log(`Đã reload: ${targets.join(', ')}`);
+            } catch(e) { 
+                alert("Lỗi reload (Có thể source không phải browser): " + e.message); 
+            }
+        }
+
+        async function reloadGroup(groupName) {
+            const targets = STORE.links[groupName] || [];
+            for(let name of targets) {
+                reloadBrowser(name);
+            }
+        }
+
+        // 2. Ẩn/Hiện Source (Có hỗ trợ Linked - Chỉ tác động lên Scene đang Active)
+        async function toggleSourceVisiblityLinked(sourceName) {
+            const group = getLinkGroup(sourceName);
+            const targets = (group && STORE.links[group]) ? STORE.links[group] : [sourceName];
+
+            try {
+                // Lấy scene hiện tại đang live
+                const currentScene = await obs.call('GetCurrentProgramScene');
+                const currentSceneName = currentScene.currentProgramSceneName;
+
+                // Lấy danh sách item trong scene hiện tại
+                const sceneItemsResp = await obs.call('GetSceneItemList', { sceneName: currentSceneName });
+                
+                // Tìm ID của các source cần toggle trong scene này
+                const itemsToToggle = sceneItemsResp.sceneItems.filter(item => targets.includes(item.sourceName));
+
+                if(itemsToToggle.length === 0) {
+                    alert(`Các source "${targets.join(',')}" không có mặt trong Scene hiện tại (${currentSceneName}) nên không thể ẩn/hiện.`);
+                    return;
+                }
+
+                // Kiểm tra trạng thái của item đầu tiên để quyết định Bật hay Tắt (đồng bộ theo thằng đầu tiên)
+                const isEnabled = itemsToToggle[0].sceneItemEnabled;
+                const newState = !isEnabled; // Đảo ngược
+
+                // Gọi từng request riêng lẻ (vì callBatch không tồn tại trong OBS WebSocket JS 5.0.0)
+                const promises = itemsToToggle.map(item => 
+                    obs.call('SetSceneItemEnabled', {
+                        sceneName: currentSceneName,
+                        sceneItemId: item.sceneItemId,
+                        sceneItemEnabled: newState
+                    })
+                );
+                
+                await Promise.all(promises);
+
+            } catch(e) {
+                console.error(e);
+                alert("Lỗi toggle visibility: " + e.message);
+            }
+        }
+
+        async function toggleVis(sceneName, itemId) {
+            try {
+                const item = await obs.call('GetSceneItemEnabled', { sceneName, sceneItemId: itemId });
+                await obs.call('SetSceneItemEnabled', { sceneName, sceneItemId: itemId, sceneItemEnabled: !item.sceneItemEnabled });
+            } catch(e) { console.error(e); }
+        }
+
+        async function saveReplayBuffer() {
+            obs.call('SaveReplayBuffer').then(() => alert("Đã lưu Buffer!")).catch(() => alert("Lỗi: Hãy bật Replay Buffer trong OBS!"));
+        }
+
+        function highlightActiveScene(name) {
+            document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById(`btn-scene-${name}`);
+            if(btn) btn.classList.add('active');
+        }
+
+        // --- UTILS ---
+        function switchTab(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        function saveStore() {
+            try {
+                localStorage.setItem('obs_tool_store', JSON.stringify(STORE));
+            } catch (e) {
+                console.warn('Không thể lưu STORE vào localStorage:', e);
+            }
+        }
+        function loadStore() { 
+            const s = localStorage.getItem('obs_tool_store');
+            if(s) {
+                try {
+                    STORE = JSON.parse(s);
+                } catch (e) {
+                    console.warn('Không thể parse STORE từ localStorage, dùng cấu trúc mặc định.', e);
+                }
+            }
+            // Đảm bảo luôn có đủ key cần thiết
+            if (!STORE.pinned) STORE.pinned = [];
+            if (!STORE.links) STORE.links = {};
+            if (!STORE.contents) STORE.contents = {};
+        }
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('camPreview');
+                video.srcObject = stream;
+            } catch(e) {
+                alert("Không tìm thấy Camera! Hãy bật OBS Virtual Camera trước.");
+            }
+        }
+
+    </script>
+</body>
+</html>

@@ -16,6 +16,7 @@ const Session = require('./models/Session');
 const OTP = require('./models/OTP');
 const Theme = require('./models/Theme');
 const TiktokGift = require('./models/TiktokGift');
+const OBSConfig = require('./models/OBSConfig');
 const otpEmailService = require('./services/otpEmailService');
 const tiktokLiveService = require('./services/tiktokLiveService');
 const facebookLiveService = require('./services/facebookLiveService');
@@ -156,7 +157,21 @@ app.get('/obs/:page', async (req, res) => {
     const { page } = req.params;
     
     // Validate page name
-    const validPages = ['PickListA', 'PickListB', 'BanListA', 'BanListB', 'CountDown', 'PreviousListA', 'PreviousListB', 'FandomWarA', 'FandomWarB'];
+    const validPages = [
+        'PickListA',
+        'PickListB',
+        'BanListA',
+        'BanListB',
+        'CountDown',
+        'PreviousListA',
+        'PreviousListB',
+        'FandomWarA',
+        'FandomWarB',
+        'CameraA',
+        'CameraB',
+        'VoteChatA',
+        'VoteChatB'
+    ];
     if (!validPages.includes(page)) {
         return res.status(404).send('Invalid OBS page');
     }
@@ -717,6 +732,86 @@ app.get('/api/admin/migrate-users', async (req, res) => {
     } catch (error) {
         console.error('Error migrating users:', error);
         res.status(500).send({ message: 'Error during migration' });
+    }
+});
+
+// ========== OBS MANAGER APIs ==========
+
+// API: Get OBS Config
+app.get('/api/obs/config', authenticateToken, async (req, res) => {
+    const { userId } = req.user;
+    
+    try {
+        let obsConfig = await OBSConfig.findOne({ userId });
+        
+        // If no config exists, create default one
+        if (!obsConfig) {
+            obsConfig = new OBSConfig({
+                userId,
+                pinned: [],
+                links: {},
+                contents: {}
+            });
+            await obsConfig.save();
+        }
+        
+        // Convert Map to Object for JSON response
+        const response = {
+            pinned: obsConfig.pinned,
+            links: Object.fromEntries(obsConfig.links),
+            contents: Object.fromEntries(obsConfig.contents)
+        };
+        
+        res.status(200).send({
+            success: true,
+            data: response
+        });
+    } catch (error) {
+        console.error('Error fetching OBS config:', error);
+        res.status(500).send({
+            success: false,
+            message: 'Lỗi khi tải cấu hình OBS'
+        });
+    }
+});
+
+// API: Save OBS Config
+app.post('/api/obs/config', authenticateToken, async (req, res) => {
+    const { userId } = req.user;
+    const { pinned, links, contents } = req.body;
+    
+    try {
+        // Upsert: update if exists, create if not
+        const obsConfig = await OBSConfig.findOneAndUpdate(
+            { userId },
+            {
+                userId,
+                pinned: pinned || [],
+                links: links || {},
+                contents: contents || {}
+            },
+            { 
+                upsert: true, 
+                new: true,
+                setDefaultsOnInsert: true
+            }
+        );
+        
+        res.status(200).send({
+            success: true,
+            message: 'Cấu hình OBS đã được lưu thành công',
+            data: {
+                pinned: obsConfig.pinned,
+                links: Object.fromEntries(obsConfig.links),
+                contents: Object.fromEntries(obsConfig.contents)
+            }
+        });
+    } catch (error) {
+        console.error('Error saving OBS config:', error);
+        res.status(500).send({
+            success: false,
+            message: 'Lỗi khi lưu cấu hình OBS'
+        });
     }
 });
 

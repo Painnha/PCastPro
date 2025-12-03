@@ -296,3 +296,264 @@ function updatePreviousPicks(data) {
         }
     }
 }
+
+// ========== VOTECHAT OVERLAY FUNCTIONS ==========
+if (window.location.pathname.includes('VoteChatA') || window.location.pathname.includes('VoteChatB')) {
+    const textEl = document.getElementById('votechatText');
+    const scoreBoxEl = document.querySelector('.votechat-score');
+    const scoreValueEl = document.querySelector('.votechat-score-value');
+    const rowEl = document.querySelector('.votechat-row');
+
+    if (textEl && scoreBoxEl && scoreValueEl && rowEl) {
+        const isTeamA = window.location.pathname.includes('VoteChatA');
+        const PHASE_DURATION = 10000;
+
+        const voteChatState = {
+            keyword: '',
+            gifts: [],
+            mode: 'off', // 'off' | 'chat' | 'gifts'
+            currentGiftIndex: 0,
+            lastSwitchTime: Date.now(),
+            score: 0
+        };
+
+        const hasKeyword = () => !!voteChatState.keyword;
+        const hasGifts = () => Array.isArray(voteChatState.gifts) && voteChatState.gifts.length > 0;
+
+        const escapeHtml = (text) => {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
+
+        const showOff = () => {
+            voteChatState.mode = 'off';
+            textEl.innerHTML = 'Chưa bật fandomwar';
+        };
+
+        const showChat = () => {
+            voteChatState.mode = 'chat';
+
+            const safeKeyword = voteChatState.keyword || '';
+            const teamClass = isTeamA ? 'team-a' : 'team-b';
+            textEl.innerHTML = '' +
+                '<span class="votechat-label">CHAT</span>' +
+                '<span class="votechat-keyword ' + teamClass + '">' + escapeHtml(safeKeyword) + '</span>' +
+                '<span class="votechat-label">NGAY</span>';
+        };
+
+        const showGift = (index) => {
+            if (!hasGifts()) {
+                showOff();
+                return;
+            }
+
+            voteChatState.mode = 'gifts';
+
+            const gift = voteChatState.gifts[index % voteChatState.gifts.length];
+            const icon = gift && gift.icon ? gift.icon : '';
+            const giftName = gift && gift.name ? gift.name : '';
+            const safeKeyword = voteChatState.keyword || '';
+            const teamClass = isTeamA ? 'team-a' : 'team-b';
+
+            textEl.innerHTML = '' +
+                '<span class="votechat-label gift-mode">TẶNG</span>' +
+                '<img id="votechatGiftImg" class="votechat-gift-img" src="' + escapeHtml(icon) + '" alt="' + escapeHtml(giftName) + '">' +
+                '<span class="votechat-label gift-mode">CHO</span>' +
+                '<span class="votechat-keyword gift-mode ' + teamClass + '">' + escapeHtml(safeKeyword) + '</span>' +
+                '<span class="votechat-label gift-mode">NGAY</span>';
+
+            const img = document.getElementById('votechatGiftImg');
+            if (img) {
+                img.classList.remove('votechat-gift-anim');
+                void img.offsetWidth;
+                img.classList.add('votechat-gift-anim');
+            }
+        };
+
+        const updateFromConfig = (teamData) => {
+            if (!teamData) {
+                voteChatState.keyword = '';
+                voteChatState.gifts = [];
+            } else {
+                voteChatState.keyword = (teamData.keyword || '').trim();
+                voteChatState.gifts = Array.isArray(teamData.gifts) ? teamData.gifts.slice() : [];
+            }
+
+            voteChatState.currentGiftIndex = 0;
+            voteChatState.lastSwitchTime = Date.now();
+
+            if (!hasKeyword() && !hasGifts()) {
+                showOff();
+            } else if (hasKeyword() && !hasGifts()) {
+                showChat();
+            } else if (!hasKeyword() && hasGifts()) {
+                showGift(voteChatState.currentGiftIndex);
+            } else {
+                showChat();
+            }
+        };
+
+        const updateScore = (score) => {
+            voteChatState.score = typeof score === 'number' ? score : 0;
+            if (scoreValueEl) {
+                try {
+                    scoreValueEl.textContent = voteChatState.score.toLocaleString();
+                } catch {
+                    scoreValueEl.textContent = String(voteChatState.score);
+                }
+            }
+        };
+
+        const tickVoteChat = () => {
+            const now = Date.now();
+
+            if (!hasKeyword() && !hasGifts()) {
+                showOff();
+                return;
+            }
+
+            if (hasKeyword() && !hasGifts()) {
+                showChat();
+                return;
+            }
+
+            if (!hasKeyword() && hasGifts()) {
+                if (now - voteChatState.lastSwitchTime >= PHASE_DURATION) {
+                    voteChatState.currentGiftIndex = (voteChatState.currentGiftIndex + 1) % voteChatState.gifts.length;
+                    voteChatState.lastSwitchTime = now;
+                }
+                showGift(voteChatState.currentGiftIndex);
+                return;
+            }
+
+            if (voteChatState.mode === 'chat') {
+                showChat();
+                if (now - voteChatState.lastSwitchTime >= PHASE_DURATION) {
+                    voteChatState.mode = 'gifts';
+                    voteChatState.currentGiftIndex = 0;
+                    voteChatState.lastSwitchTime = now;
+                    showGift(voteChatState.currentGiftIndex);
+                }
+            } else if (voteChatState.mode === 'gifts') {
+                showGift(voteChatState.currentGiftIndex);
+                if (now - voteChatState.lastSwitchTime >= PHASE_DURATION) {
+                    voteChatState.currentGiftIndex++;
+                    voteChatState.lastSwitchTime = now;
+                    if (voteChatState.currentGiftIndex >= voteChatState.gifts.length) {
+                        voteChatState.mode = 'chat';
+                        voteChatState.currentGiftIndex = 0;
+                        showChat();
+                    } else {
+                        showGift(voteChatState.currentGiftIndex);
+                    }
+                }
+            } else {
+                voteChatState.mode = 'chat';
+                voteChatState.lastSwitchTime = now;
+                showChat();
+            }
+        };
+
+        setInterval(tickVoteChat, 1000);
+
+        const previousHandleData = window.handleData || handleData;
+        window.handleData = function(data) {
+            if (data && data.type === 'fandomwar-config') {
+                const teamData = isTeamA ? data.teamA : data.teamB;
+                updateFromConfig(teamData);
+            } else if (data && data.type === 'fandomwar-votes') {
+                const score = isTeamA ? (data.teamAVotes || 0) : (data.teamBVotes || 0);
+                updateScore(score);
+                if (previousHandleData) {
+                    previousHandleData(data);
+                }
+            } else if (previousHandleData) {
+                previousHandleData(data);
+            }
+        };
+
+        showOff();
+    }
+}
+
+// ========== CAMERA OVERLAY FUNCTIONS ==========
+// Initialize camera overlay if on CameraA or CameraB page
+if (window.location.pathname.includes('CameraA') || window.location.pathname.includes('CameraB')) {
+    const cameraContainer = document.getElementById('cameraContainer');
+    const cameraFrame = document.getElementById('cameraFrame');
+    const playerNameEl = document.getElementById('playerName');
+    
+    // Determine if this is Team A or Team B
+    const isTeamA = window.location.pathname.includes('CameraA');
+    
+    // Lane mapping backgrounds
+    const laneBackgrounds = {
+        'Top': isTeamA ? '/images/cameraOverlay/Top_A.png' : '/images/cameraOverlay/Top_B.png',
+        'Jung': isTeamA ? '/images/cameraOverlay/Jung_A.png' : '/images/cameraOverlay/Jung_B.png',
+        'Mid': isTeamA ? '/images/cameraOverlay/Mid_A.png' : '/images/cameraOverlay/Mid_B.png',
+        'ADC': isTeamA ? '/images/cameraOverlay/Ad_A.png' : '/images/cameraOverlay/Ad_B.png',
+        'Support': isTeamA ? '/images/cameraOverlay/Sp_A.png' : '/images/cameraOverlay/Sp_B.png'
+    };
+    
+    // Handle camera overlay updates via existing socket
+    const originalHandleData = handleData;
+    handleData = function(data) {
+        // Handle selectLane for camera overlay
+        if (data.type === 'selectLane' && cameraContainer && cameraFrame && playerNameEl) {
+            const { lane, teamA, teamB } = data;
+            const teamData = isTeamA ? teamA : teamB;
+            
+            // Always update background regardless of camera link
+            if (laneBackgrounds[lane]) {
+                cameraContainer.style.backgroundImage = `url('${laneBackgrounds[lane]}')`;
+            }
+            
+            // Update camera iframe (empty if no link)
+            // Ensure autoplay by adding autoplay and muted parameters to URL
+            if (teamData && teamData.cameraLink) {
+                let cameraUrl = teamData.cameraLink;
+                // Add autoplay and muted parameters if not already present
+                // Muted is required for autoplay to work in most browsers
+                if (cameraUrl) {
+                    const separator = cameraUrl.includes('?') ? '&' : '?';
+                    let params = [];
+                    
+                    if (!cameraUrl.includes('autoplay')) {
+                        params.push('autoplay=1');
+                    }
+                    if (!cameraUrl.includes('muted')) {
+                        params.push('muted=1');
+                    }
+                    if (!cameraUrl.includes('playsinline')) {
+                        params.push('playsinline=1');
+                    }
+                    
+                    if (params.length > 0) {
+                        cameraUrl = cameraUrl + separator + params.join('&');
+                    }
+                }
+                // Force reload by setting src to empty first, then new URL
+                cameraFrame.src = '';
+                setTimeout(() => {
+                    cameraFrame.src = cameraUrl;
+                }, 10);
+            } else {
+                cameraFrame.src = '';
+            }
+            
+            // Update player name (empty if no name)
+            if (teamData && teamData.playerName) {
+                playerNameEl.textContent = teamData.playerName;
+            } else {
+                playerNameEl.textContent = '';
+            }
+            
+            console.log(`Camera${isTeamA ? 'A' : 'B'}: Updated to ${lane} - ${teamData?.playerName || '(no name)'}`);
+        }
+        
+        // Call original handler for other data types
+        originalHandleData(data);
+    };
+}
