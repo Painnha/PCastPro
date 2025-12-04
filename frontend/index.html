@@ -174,6 +174,10 @@
                   <button id="disconnectTikTokBtn" class="btn btn-red btn-sm" disabled>Ngắt kết nối</button>
                   <button id="resetTikTokBtn" class="btn btn-yellow btn-sm">Reset</button>
                 </div>
+                <div class="connect-row" style="margin-top: 8px;">
+                  <input type="text" id="tiktokSessionId" placeholder="sessionid (tùy chọn - cookie TikTok)..." class="platform-input" style="font-size: 12px;" />
+                  <small style="color: #888; display: block; margin-top: 4px;">💡 Lấy cookie "sessionid" từ Application > Cookies > tiktok.com (sau khi đăng nhập TikTok trên trình duyệt)</small>
+                </div>
               </div>
 
               <!-- Team Keywords Input -->
@@ -446,20 +450,43 @@
 
                   <div class="obs-panel" style="flex: 0 0 auto;">
                     <div class="obs-panel-header"><span><i class="fas fa-film"></i> HIGHLIGHT CONTROLS</span></div>
-                    <div class="obs-panel-content">
-                      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <button class="obs-btn-sm"
-                          style="background: var(--danger); color: white; flex: 1; padding: 15px; font-size: 14px;"
-                          onclick="obsManagerAPI.saveReplayBuffer()">
-                          <i class="fas fa-save"></i> LƯU BUFFER NGAY
+                    <div class="obs-panel-content" style="padding: 10px;">
+                      <button class="obs-btn-sm"
+                        style="background: var(--danger); color: white; width: 100%; padding: 10px; font-size: 13px; margin-bottom: 8px;"
+                        onclick="obsManagerAPI.saveReplayBuffer()">
+                        <i class="fas fa-save"></i> LƯU BUFFER NGAY
+                      </button>
+                      
+                      <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 3px;">Tên Source:</label>
+                      <input type="text" class="obs-input-dark" id="obs-highlight-source-name"
+                        placeholder="video-highlight" style="margin-bottom: 8px; font-size: 12px; padding: 6px;">
+                      
+                      <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 3px;">Thư mục lưu Highlight:</label>
+                      <div style="display: flex; gap: 3px; margin-bottom: 8px; position: relative;">
+                        <input type="text" class="obs-input-dark" id="obs-highlight-folder"
+                          placeholder="E:/Highlights" style="font-size: 12px; padding: 6px; padding-right: 35px;">
+                        <button class="obs-btn-sm" 
+                          style="position: absolute; right: 0; top: 0; bottom: 0; background: transparent; border: none; color: var(--accent); padding: 0 8px;"
+                          onclick="document.getElementById('obs-folder-picker').click()" title="Chọn thư mục">
+                          <i class="fas fa-folder-open"></i>
                         </button>
+                        <input type="file" id="obs-folder-picker" webkitdirectory directory style="display: none;" 
+                          onchange="obsManagerAPI.handleFolderSelect(event)">
                       </div>
-                      <label style="font-size: 12px; color: #aaa;">Thay đổi Video Highlight (Dán đường dẫn
-                        file):</label>
-                      <div style="display: flex; gap: 5px; margin-top: 5px;">
+                      
+                      <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 3px;">Đường dẫn Video:</label>
+                      <div style="display: flex; gap: 3px; position: relative;">
                         <input type="text" class="obs-input-dark" id="obs-highlight-path"
-                          placeholder="C:/Videos/highlight.mp4">
-                        <button class="obs-btn-sm" style="background: var(--primary); color: white;"
+                          placeholder="C:/Videos/highlight.mp4" style="font-size: 12px; padding: 6px; padding-right: 35px;">
+                        <button class="obs-btn-sm" 
+                          style="position: absolute; right: 60px; top: 0; bottom: 0; background: transparent; border: none; color: var(--accent); padding: 0 8px;"
+                          onclick="document.getElementById('obs-file-picker').click()" title="Chọn file">
+                          <i class="fas fa-file-video"></i>
+                        </button>
+                        <input type="file" id="obs-file-picker" accept="video/*" style="display: none;" 
+                          onchange="obsManagerAPI.handleFileSelect(event)">
+                        <button class="obs-btn-sm" 
+                          style="position: absolute; right: 0; top: 0; bottom: 0; width: 55px; background: var(--primary); color: white; font-size: 12px;"
                           onclick="obsManagerAPI.updateHighlight()">Set</button>
                       </div>
                     </div>
@@ -482,6 +509,15 @@
                         <video id="obsCamPreview" autoplay playsinline muted></video>
                       </div>
                     </div>
+                    
+                    <!-- Background Swap Control -->
+                    <div style="padding: 8px; border-top: 1px solid #333;">
+                      <button class="obs-btn-sm" id="obs-endgame-bg-swap-btn"
+                        style="background: var(--accent); color: white; width: 100%; padding: 12px; font-size: 13px;"
+                        onclick="obsManagerAPI.swapEndgameBackground()">
+                        <i class="fas fa-image"></i> <span id="obs-endgame-bg-text">Đang dùng: End Game.png</span>
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Camera Management Section -->
@@ -499,6 +535,25 @@
                         </button>
                       </div>
                     </div>
+                    
+                    <!-- Auto-Rotation Controls -->
+                    <div class="auto-rotation-panel" style="padding: 10px; background: #1e1e1e; border-bottom: 1px solid #333;">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                          <button id="autoRotationToggle" class="obs-btn-sm" style="background: #333; color: white; min-width: 120px;"
+                            onclick="obsManagerAPI.toggleAutoRotation()">
+                            <i class="fas fa-sync-alt"></i> <span id="autoRotationText">Bật Auto</span>
+                          </button>
+                          <div id="autoRotationStatus" style="color: #888; font-size: 13px;">
+                            Chưa bật
+                          </div>
+                        </div>
+                      </div>
+                      <div style="font-size: 11px; color: #666; padding: 5px 0;">
+                        💡 <strong>Gợi ý:</strong> Click 📁 để chọn ảnh (tự động nén), hoặc paste link VDO.ninja/Cloudinary
+                      </div>
+                    </div>
+                    
                     <div class="camera-management-content">
                       <!-- Team A -->
                       <div class="camera-team-section">
@@ -511,7 +566,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_A_Top" placeholder="Tên tuyển thủ" 
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('A', 'Top', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_A_Top" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_A_Top" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('A', 'Top')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
 
                         <div class="camera-player-row">
@@ -521,7 +581,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_A_Jung" placeholder="Tên tuyển thủ"
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('A', 'Jung', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_A_Jung" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_A_Jung" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('A', 'Jung')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
 
                         <div class="camera-player-row">
@@ -531,7 +596,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_A_Mid" placeholder="Tên tuyển thủ"
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('A', 'Mid', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_A_Mid" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_A_Mid" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('A', 'Mid')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
 
                         <div class="camera-player-row">
@@ -541,7 +611,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_A_ADC" placeholder="Tên tuyển thủ"
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('A', 'ADC', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_A_ADC" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_A_ADC" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('A', 'ADC')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
 
                         <div class="camera-player-row">
@@ -551,7 +626,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_A_Support" placeholder="Tên tuyển thủ"
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('A', 'Support', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_A_Support" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_A_Support" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('A', 'Support')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -566,7 +646,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_B_Top" placeholder="Tên tuyển thủ"
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('B', 'Top', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_B_Top" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_B_Top" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('B', 'Top')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
 
                         <div class="camera-player-row">
@@ -576,7 +661,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_B_Jung" placeholder="Tên tuyển thủ"
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('B', 'Jung', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_B_Jung" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_B_Jung" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('B', 'Jung')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
 
                         <div class="camera-player-row">
@@ -586,7 +676,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_B_Mid" placeholder="Tên tuyển thủ"
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('B', 'Mid', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_B_Mid" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_B_Mid" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('B', 'Mid')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
 
                         <div class="camera-player-row">
@@ -596,7 +691,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_B_ADC" placeholder="Tên tuyển thủ"
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('B', 'ADC', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_B_ADC" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_B_ADC" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('B', 'ADC')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
 
                         <div class="camera-player-row">
@@ -606,7 +706,12 @@
                           </button>
                           <input type="text" class="camera-player-name" id="playerName_B_Support" placeholder="Tên tuyển thủ"
                                  onchange="obsManagerAPI.updatePlayerNameFromInput('B', 'Support', this.value)">
-                          <input type="text" class="camera-link" id="cameraLink_B_Support" placeholder="VDO.ninja solo link">
+                          <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" class="camera-link" id="cameraLink_B_Support" placeholder="VDO.ninja link hoặc click 📁 để chọn hình">
+                            <button class="obs-icon-btn" onclick="obsManagerAPI.selectImageForCamera('B', 'Support')" title="Chọn hình" style="flex-shrink: 0;">
+                              <i class="fas fa-folder-open"></i>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

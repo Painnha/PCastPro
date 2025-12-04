@@ -20,6 +20,11 @@ const OBSConfig = require('./models/OBSConfig');
 const otpEmailService = require('./services/otpEmailService');
 const tiktokLiveService = require('./services/tiktokLiveService');
 const facebookLiveService = require('./services/facebookLiveService');
+const axios = require('axios');
+
+// Python Backend Configuration
+const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:5000';
+const USE_PYTHON_BACKEND = process.env.USE_PYTHON_BACKEND !== 'false'; // Default to true
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -815,6 +820,82 @@ app.post('/api/obs/config', authenticateToken, async (req, res) => {
     }
 });
 
+// API: Get latest file in directory
+app.post('/api/obs/latest-file', authenticateToken, async (req, res) => {
+    const { directory } = req.body;
+    
+    if (!directory) {
+        return res.status(400).send({
+            success: false,
+            message: 'Thiếu thư mục'
+        });
+    }
+    
+    try {
+        // Check if directory exists
+        if (!fs.existsSync(directory)) {
+            return res.status(404).send({
+                success: false,
+                message: 'Thư mục không tồn tại'
+            });
+        }
+        
+        // Read all files in directory
+        const files = fs.readdirSync(directory);
+        
+        // Filter for video files only
+        const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.webm'];
+        const videoFiles = files.filter(file => {
+            const ext = path.extname(file).toLowerCase();
+            return videoExtensions.includes(ext);
+        });
+        
+        if (videoFiles.length === 0) {
+            return res.status(404).send({
+                success: false,
+                message: 'Không tìm thấy file video nào trong thư mục'
+            });
+        }
+        
+        // Get file stats and find the latest one
+        let latestFile = null;
+        let latestTime = 0;
+        
+        videoFiles.forEach(file => {
+            const filePath = path.join(directory, file);
+            const stats = fs.statSync(filePath);
+            const mtime = stats.mtime.getTime();
+            
+            if (mtime > latestTime) {
+                latestTime = mtime;
+                latestFile = filePath;
+            }
+        });
+        
+        if (latestFile) {
+            // Convert backslashes to forward slashes for consistency
+            latestFile = latestFile.replace(/\\/g, '/');
+            
+            res.status(200).send({
+                success: true,
+                filePath: latestFile,
+                fileName: path.basename(latestFile)
+            });
+        } else {
+            res.status(404).send({
+                success: false,
+                message: 'Không thể tìm file mới nhất'
+            });
+        }
+    } catch (error) {
+        console.error('Error finding latest file:', error);
+        res.status(500).send({
+            success: false,
+            message: 'Lỗi khi tìm file: ' + error.message
+        });
+    }
+});
+
 // ========== FANDOM WAR APIs ==========
 
 // API: Get TikTok Gifts List
@@ -837,7 +918,7 @@ app.get('/api/fandomwar/gifts', authenticateToken, async (req, res) => {
 
 // API: Connect to TikTok Live
 app.post('/api/fandomwar/connect', authenticateToken, async (req, res) => {
-    const { username } = req.body;
+    const { username, sessionId, sessionIdSs } = req.body;
     
     if (!username) {
         return res.status(400).send({ 
@@ -847,17 +928,50 @@ app.post('/api/fandomwar/connect', authenticateToken, async (req, res) => {
     }
     
     try {
+        // Try Python backend first if enabled
+        if (USE_PYTHON_BACKEND) {
+            try {
+                console.log('🐍 Attempting to connect via Python backend...');
+                
+                const pythonResponse = await axios.post(
+                    `${PYTHON_BACKEND_URL}/connect`,
+                    { 
+                        username, 
+                        sessionId: sessionId || sessionIdSs 
+                    },
+                    { timeout: 10000 }
+                );
+                
+                if (pythonResponse.data.success) {
+                    console.log('✅ Connected via Python backend');
+                    return res.status(200).send({
+                        success: true,
+                        message: 'Connected to TikTok Live successfully (Python)',
+                        data: pythonResponse.data.data,
+                        backend: 'python'
+                    });
+                }
+            } catch (pythonError) {
+                console.warn('⚠️ Python backend unavailable, falling back to Node.js:', pythonError.message);
+                // Continue to fallback below
+            }
+        }
+        
+        // Fallback to Node.js backend
+        console.log('🟢 Using Node.js backend...');
+        
         // Disconnect existing connection if any
         if (tiktokLiveService.getStatus().isConnected) {
             tiktokLiveService.disconnect();
         }
         
-        const result = await tiktokLiveService.connect(username);
+        const result = await tiktokLiveService.connect(username, sessionId, sessionIdSs);
         
         res.status(200).send({
             success: true,
-            message: 'Connected to TikTok Live successfully',
-            data: result
+            message: 'Connected to TikTok Live successfully (Node.js)',
+            data: result,
+            backend: 'nodejs'
         });
     } catch (error) {
         console.error('Error connecting to TikTok Live:', error);
@@ -869,9 +983,36 @@ app.post('/api/fandomwar/connect', authenticateToken, async (req, res) => {
 });
 
 // API: Disconnect from TikTok Live
-app.post('/api/fandomwar/disconnect', authenticateToken, (req, res) => {
+app.post('/api/fandomwar/disconnect', authenticateToken, async (req, res) => {
     try {
-        tiktokLiveService.disconnect();
+        let disconnected = false;
+        
+        // Try Python backend first if enabled
+        if (USE_PYTHON_BACKEND) {
+            try {
+                console.log('🐍 Attempting to disconnect via Python backend...');
+                
+                const pythonResponse = await axios.post(
+                    `${PYTHON_BACKEND_URL}/disconnect`,
+                    {},
+                    { timeout: 5000 }
+                );
+                
+                if (pythonResponse.data.success) {
+                    console.log('✅ Disconnected via Python backend');
+                    disconnected = true;
+                }
+            } catch (pythonError) {
+                console.warn('⚠️ Python backend disconnect failed:', pythonError.message);
+                // Continue to Node.js disconnect
+            }
+        }
+        
+        // Also disconnect Node.js backend (in case it was used as fallback)
+        if (tiktokLiveService.getStatus().isConnected) {
+            tiktokLiveService.disconnect();
+            disconnected = true;
+        }
         
         res.status(200).send({
             success: true,
@@ -887,17 +1028,42 @@ app.post('/api/fandomwar/disconnect', authenticateToken, (req, res) => {
 });
 
 // API: Get TikTok Live connection status
-app.get('/api/fandomwar/status', authenticateToken, (req, res) => {
-    const tiktokStatus = tiktokLiveService.getStatus();
-    const facebookStatus = facebookLiveService.getStatus();
-    
-    // Determine which platform is connected
-    const status = tiktokStatus.isConnected ? tiktokStatus : facebookStatus;
-    
-    res.status(200).send({
-        success: true,
-        data: status
-    });
+app.get('/api/fandomwar/status', authenticateToken, async (req, res) => {
+    try {
+        let tiktokStatus = tiktokLiveService.getStatus();
+        const facebookStatus = facebookLiveService.getStatus();
+        
+        // Check Python backend status if enabled
+        if (USE_PYTHON_BACKEND) {
+            try {
+                const pythonResponse = await axios.get(
+                    `${PYTHON_BACKEND_URL}/status`,
+                    { timeout: 3000 }
+                );
+                
+                if (pythonResponse.data.success && pythonResponse.data.data.isConnected) {
+                    // Python backend is connected, use its status
+                    tiktokStatus = pythonResponse.data.data;
+                }
+            } catch (pythonError) {
+                // Python backend not available, use Node.js status
+            }
+        }
+        
+        // Determine which platform is connected
+        const status = tiktokStatus.isConnected ? tiktokStatus : facebookStatus;
+        
+        res.status(200).send({
+            success: true,
+            data: status
+        });
+    } catch (error) {
+        console.error('Error getting status:', error);
+        res.status(500).send({
+            success: false,
+            message: 'Error getting status'
+        });
+    }
 });
 
 // ========== FACEBOOK LIVE APIs ==========

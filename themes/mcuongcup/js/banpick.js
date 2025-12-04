@@ -483,6 +483,7 @@ if (window.location.pathname.includes('VoteChatA') || window.location.pathname.i
 if (window.location.pathname.includes('CameraA') || window.location.pathname.includes('CameraB')) {
     const cameraContainer = document.getElementById('cameraContainer');
     const cameraFrame = document.getElementById('cameraFrame');
+    const cameraImage = document.getElementById('cameraImage');
     const playerNameEl = document.getElementById('playerName');
     
     // Determine if this is Team A or Team B
@@ -501,7 +502,7 @@ if (window.location.pathname.includes('CameraA') || window.location.pathname.inc
     const originalHandleData = handleData;
     handleData = function(data) {
         // Handle selectLane for camera overlay
-        if (data.type === 'selectLane' && cameraContainer && cameraFrame && playerNameEl) {
+        if (data.type === 'selectLane' && cameraContainer && playerNameEl) {
             const { lane, teamA, teamB } = data;
             const teamData = isTeamA ? teamA : teamB;
             
@@ -510,37 +511,69 @@ if (window.location.pathname.includes('CameraA') || window.location.pathname.inc
                 cameraContainer.style.backgroundImage = `url('${laneBackgrounds[lane]}')`;
             }
             
-            // Update camera iframe (empty if no link)
-            // Ensure autoplay by adding autoplay and muted parameters to URL
+            // Check if we have a camera link/image
             if (teamData && teamData.cameraLink) {
-                let cameraUrl = teamData.cameraLink;
-                // Add autoplay and muted parameters if not already present
-                // Muted is required for autoplay to work in most browsers
-                if (cameraUrl) {
-                    const separator = cameraUrl.includes('?') ? '&' : '?';
-                    let params = [];
-                    
-                    if (!cameraUrl.includes('autoplay')) {
-                        params.push('autoplay=1');
+                // Check if this is an image or video
+                if (teamData.isImage) {
+                    // Show image, hide iframe
+                    if (cameraFrame) {
+                        cameraFrame.style.display = 'none';
+                        cameraFrame.src = '';
                     }
-                    if (!cameraUrl.includes('muted')) {
-                        params.push('muted=1');
+                    if (cameraImage) {
+                        cameraImage.style.display = 'block';
+                        cameraImage.src = teamData.cameraLink;
                     }
-                    if (!cameraUrl.includes('playsinline')) {
-                        params.push('playsinline=1');
+                    console.log(`Camera${isTeamA ? 'A' : 'B'}: Showing IMAGE - ${lane} - ${teamData.playerName || '(no name)'}`);
+                } else {
+                    // Show iframe, hide image
+                    if (cameraImage) {
+                        cameraImage.style.display = 'none';
+                        cameraImage.src = '';
                     }
-                    
-                    if (params.length > 0) {
-                        cameraUrl = cameraUrl + separator + params.join('&');
+                    if (cameraFrame) {
+                        cameraFrame.style.display = 'block';
+                        
+                        let cameraUrl = teamData.cameraLink;
+                        // Add autoplay and muted parameters if not already present
+                        if (cameraUrl) {
+                            const separator = cameraUrl.includes('?') ? '&' : '?';
+                            let params = [];
+                            
+                            if (!cameraUrl.includes('autoplay')) {
+                                params.push('autoplay=1');
+                            }
+                            if (!cameraUrl.includes('muted')) {
+                                params.push('muted=1');
+                            }
+                            if (!cameraUrl.includes('playsinline')) {
+                                params.push('playsinline=1');
+                            }
+                            
+                            if (params.length > 0) {
+                                cameraUrl = cameraUrl + separator + params.join('&');
+                            }
+                        }
+                        
+                        // Force reload by setting src to empty first, then new URL
+                        cameraFrame.src = '';
+                        setTimeout(() => {
+                            cameraFrame.src = cameraUrl;
+                        }, 10);
                     }
+                    console.log(`Camera${isTeamA ? 'A' : 'B'}: Showing VIDEO - ${lane} - ${teamData.playerName || '(no name)'}`);
                 }
-                // Force reload by setting src to empty first, then new URL
-                cameraFrame.src = '';
-                setTimeout(() => {
-                    cameraFrame.src = cameraUrl;
-                }, 10);
             } else {
-                cameraFrame.src = '';
+                // No link - hide both
+                if (cameraFrame) {
+                    cameraFrame.style.display = 'none';
+                    cameraFrame.src = '';
+                }
+                if (cameraImage) {
+                    cameraImage.style.display = 'none';
+                    cameraImage.src = '';
+                }
+                console.log(`Camera${isTeamA ? 'A' : 'B'}: No camera/image - ${lane}`);
             }
             
             // Update player name (empty if no name)
@@ -549,8 +582,6 @@ if (window.location.pathname.includes('CameraA') || window.location.pathname.inc
             } else {
                 playerNameEl.textContent = '';
             }
-            
-            console.log(`Camera${isTeamA ? 'A' : 'B'}: Updated to ${lane} - ${teamData?.playerName || '(no name)'}`);
         }
         
         // Call original handler for other data types

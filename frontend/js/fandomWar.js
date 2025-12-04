@@ -169,13 +169,22 @@ class FandomWar {
       this.connectTikTokBtn.disabled = true;
       this.connectTikTokBtn.textContent = 'Đang kết nối...';
       
+      // Get sessionId if provided
+      const sessionIdInput = document.getElementById('tiktokSessionId');
+      const sessionId = sessionIdInput ? sessionIdInput.value.trim() : '';
+      
+      const requestBody = { username: this.tiktokLiveId };
+      if (sessionId) {
+        requestBody.sessionId = sessionId;
+      }
+      
       const response = await fetch(`${this.apiBaseUrl}/connect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ username: this.tiktokLiveId })
+        body: JSON.stringify(requestBody)
       });
       
       const result = await response.json();
@@ -552,11 +561,11 @@ class FandomWar {
     // Check keywords based on current platform
     if (this.currentPlatform === 'tiktok') {
       // TikTok keywords
-      if (this.teamAKeyword && textTrimmed === this.teamAKeyword.trim().toLowerCase()) {
+      if (this.teamAKeyword && textTrimmed.includes(this.teamAKeyword.trim().toLowerCase())) {
         return 'team-a';
       }
       
-      if (this.teamBKeyword && textTrimmed === this.teamBKeyword.trim().toLowerCase()) {
+      if (this.teamBKeyword && textTrimmed.includes(this.teamBKeyword.trim().toLowerCase())) {
         return 'team-b';
       }
     } else if (this.currentPlatform === 'facebook') {
@@ -564,11 +573,11 @@ class FandomWar {
       const teamAKeywordFb = this.teamAKeywordFbInput?.value.trim().toLowerCase();
       const teamBKeywordFb = this.teamBKeywordFbInput?.value.trim().toLowerCase();
       
-      if (teamAKeywordFb && textTrimmed === teamAKeywordFb) {
+      if (teamAKeywordFb && textTrimmed.includes(teamAKeywordFb)) {
         return 'team-a';
       }
       
-      if (teamBKeywordFb && textTrimmed === teamBKeywordFb) {
+      if (teamBKeywordFb && textTrimmed.includes(teamBKeywordFb)) {
         return 'team-b';
       }
     }

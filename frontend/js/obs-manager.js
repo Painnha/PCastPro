@@ -22,6 +22,15 @@ const obsManager = (function() {
     // Cache danh sách source sau khi scan
     let CACHED_SCENES = [];
     let currentGroupName = '';
+    
+    // Auto-rotation state
+    let rotationInterval = null;
+    let rotationState = {
+        enabled: false,
+        currentLaneIndex: 0,
+        timeRemaining: 15,
+        lanes: ['Top', 'Jung', 'Mid', 'ADC', 'Support']
+    };
 
     // --- 1. CONNECTION ---
     async function connectOBS() {
@@ -646,7 +655,51 @@ const obsManager = (function() {
     }
 
     async function updateHighlight() {
-        alert("Bạn hãy Ghim (Pin) source Highlight vào Dashboard, sau đó dán link vào ô nhập liệu của source đó nhé!");
+        try {
+            // Get source name and video path from inputs
+            const sourceNameInput = document.getElementById('obs-highlight-source-name');
+            const videoPathInput = document.getElementById('obs-highlight-path');
+            
+            if(!sourceNameInput || !videoPathInput) {
+                showNotification('Không tìm thấy input fields!', 'error');
+                return;
+            }
+            
+            const sourceName = sourceNameInput.value.trim();
+            const videoPath = videoPathInput.value.trim();
+            
+            if(!sourceName) {
+                showNotification('Vui lòng nhập tên source video highlight!', 'warning');
+                return;
+            }
+            
+            if(!videoPath) {
+                showNotification('Vui lòng nhập đường dẫn file video!', 'warning');
+                return;
+            }
+            
+            // Update the video source in OBS
+            await obs.call('SetInputSettings', {
+                inputName: sourceName,
+                inputSettings: {
+                    local_file: videoPath,
+                    file: videoPath
+                }
+            });
+            
+            // Visual feedback
+            videoPathInput.style.borderColor = '#10b981';
+            setTimeout(() => {
+                videoPathInput.style.borderColor = '#444';
+            }, 1500);
+            
+            console.log(`Đã cập nhật video highlight cho source "${sourceName}": ${videoPath}`);
+            showNotification('✅ Video highlight đã được cập nhật!', 'success');
+            
+        } catch(e) {
+            console.error('Lỗi cập nhật highlight:', e);
+            showNotification(`Lỗi: ${e.message}`, 'error');
+        }
     }
 
     async function reloadBrowser(sourceName) {
@@ -712,7 +765,111 @@ const obsManager = (function() {
     }
 
     async function saveReplayBuffer() {
-        obs.call('SaveReplayBuffer').then(() => alert("Đã lưu Buffer!")).catch(() => alert("Lỗi: Hãy bật Replay Buffer trong OBS!"));
+        try {
+            // Save replay buffer in OBS
+            await obs.call('SaveReplayBuffer');
+            console.log('Replay buffer saved!');
+            
+            // Get highlight folder from input
+            const folderInput = document.getElementById('obs-highlight-folder');
+            const highlightFolder = folderInput ? folderInput.value.trim() : '';
+            
+            if (!highlightFolder) {
+                showNotification('Đã lưu Buffer! Nhưng chưa nhập thư mục highlight.', 'warning');
+                return;
+            }
+            
+            // Show loading message
+            const pathInput = document.getElementById('obs-highlight-path');
+            if (pathInput) {
+                pathInput.value = 'Đang tìm file mới nhất...';
+                pathInput.style.borderColor = '#f59e0b';
+            }
+            
+            // Wait a bit for file to be written
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Call API to get latest file
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                showNotification('Đã lưu Buffer! Nhưng cần đăng nhập để tự động cập nhật.', 'warning');
+                if (pathInput) pathInput.value = '';
+                return;
+            }
+            
+            const response = await fetch('http://localhost:3000/api/obs/latest-file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ directory: highlightFolder })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                const filePath = result.filePath;
+                
+                // Update input field
+                if (pathInput) {
+                    pathInput.value = filePath;
+                    pathInput.style.borderColor = '#10b981';
+                    setTimeout(() => {
+                        pathInput.style.borderColor = '#444';
+                    }, 2000);
+                }
+                
+                // Automatically update highlight source
+                await updateHighlightInternal(filePath);
+                
+                showNotification(`✅ Highlight đã được cập nhật! ${result.fileName}`, 'success');
+            } else {
+                showNotification('Đã lưu Buffer nhưng không tìm thấy file mới', 'error');
+                if (pathInput) pathInput.value = '';
+            }
+            
+        } catch (e) {
+            console.error('Error saving replay buffer:', e);
+            showNotification(`Lỗi: ${e.message}`, 'error');
+            const pathInput = document.getElementById('obs-highlight-path');
+            if (pathInput) {
+                pathInput.value = '';
+                pathInput.style.borderColor = '#ef4444';
+            }
+        }
+    }
+    
+    // Internal function to update highlight without alert
+    async function updateHighlightInternal(videoPath) {
+        try {
+            const sourceNameInput = document.getElementById('obs-highlight-source-name');
+            
+            if (!sourceNameInput) {
+                throw new Error('Không tìm thấy input source name');
+            }
+            
+            const sourceName = sourceNameInput.value.trim();
+            
+            if (!sourceName) {
+                throw new Error('Chưa nhập tên source video highlight');
+            }
+            
+            // Update the video source in OBS
+            await obs.call('SetInputSettings', {
+                inputName: sourceName,
+                inputSettings: {
+                    local_file: videoPath,
+                    file: videoPath
+                }
+            });
+            
+            console.log(`Đã cập nhật video highlight cho source "${sourceName}": ${videoPath}`);
+            
+        } catch (e) {
+            console.error('Error updating highlight internally:', e);
+            throw e;
+        }
     }
 
     function highlightActiveScene(name) {
@@ -1052,16 +1209,20 @@ const obsManager = (function() {
             }
         });
 
-        // Prepare data for WebSocket broadcast
-        // Even if empty, still broadcast to change background
+        // Prepare data for WebSocket broadcast with image detection
+        const teamALink = STORE.cameraData.cameras.A[lane] || '';
+        const teamBLink = STORE.cameraData.cameras.B[lane] || '';
+        
         const teamAData = {
             playerName: STORE.cameraData.players.A[lane] || '',
-            cameraLink: STORE.cameraData.cameras.A[lane] || ''
+            cameraLink: teamALink,
+            isImage: isImageLink(teamALink)
         };
 
         const teamBData = {
             playerName: STORE.cameraData.players.B[lane] || '',
-            cameraLink: STORE.cameraData.cameras.B[lane] || ''
+            cameraLink: teamBLink,
+            isImage: isImageLink(teamBLink)
         };
 
         // Broadcast via WebSocket
@@ -1073,7 +1234,10 @@ const obsManager = (function() {
                 teamB: teamBData
             }));
             
-            console.log(`Selected lane: ${lane}`, { teamA: teamAData, teamB: teamBData });
+            console.log(`Selected lane: ${lane}`, { 
+                teamA: { ...teamAData, isImage: teamAData.isImage ? '✓' : '✗' }, 
+                teamB: { ...teamBData, isImage: teamBData.isImage ? '✓' : '✗' } 
+            });
         } else {
             console.warn('WebSocket not connected. Cannot broadcast lane selection.');
         }
@@ -1239,6 +1403,459 @@ const obsManager = (function() {
         }
     }
 
+    // --- NOTIFICATION SYSTEM ---
+    function showNotification(message, type = 'info') {
+        // Create toast notification
+        const toast = document.createElement('div');
+        toast.className = `obs-toast obs-toast-${type}`;
+        toast.innerHTML = `
+            <i class="fas ${getNotificationIcon(type)}"></i>
+            <span>${message}</span>
+        `;
+        
+        // Add styles if not exists
+        if (!document.getElementById('obs-toast-styles')) {
+            const style = document.createElement('style');
+            style.id = 'obs-toast-styles';
+            style.textContent = `
+                .obs-toast {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    color: white;
+                    font-size: 14px;
+                    font-weight: 500;
+                    z-index: 10000;
+                    animation: slideInRight 0.3s ease-out;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    max-width: 400px;
+                    word-wrap: break-word;
+                }
+                .obs-toast i {
+                    font-size: 16px;
+                    flex-shrink: 0;
+                }
+                .obs-toast-success { background: linear-gradient(135deg, #10b981, #059669); }
+                .obs-toast-error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+                .obs-toast-info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+                .obs-toast-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+                @keyframes slideInRight {
+                    from { transform: translateX(400px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOutRight {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(400px); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        document.body.appendChild(toast);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+    
+    function getNotificationIcon(type) {
+        switch(type) {
+            case 'success': return 'fa-check-circle';
+            case 'error': return 'fa-times-circle';
+            case 'warning': return 'fa-exclamation-triangle';
+            case 'info': return 'fa-info-circle';
+            default: return 'fa-info-circle';
+        }
+    }
+
+    // --- ENDGAME BACKGROUND SWAP ---
+    const ENDGAME_BG_PATHS = {
+        path1: 'E:/MCuongCup/Live Final/End Game.png',
+        path2: 'E:/MCuongCup/Live Final/End Game 2.png'
+    };
+    
+    async function swapEndgameBackground() {
+        try {
+            // Get current state from localStorage (default to path1)
+            let currentBg = localStorage.getItem('endgame_bg_state') || 'path1';
+            
+            // Toggle to the other background
+            const newBg = currentBg === 'path1' ? 'path2' : 'path1';
+            const newPath = ENDGAME_BG_PATHS[newBg];
+            
+            // Update OBS source
+            await obs.call('SetInputSettings', {
+                inputName: 'background-endgame',
+                inputSettings: {
+                    local_file: newPath,
+                    file: newPath
+                }
+            });
+            
+            // Save new state
+            localStorage.setItem('endgame_bg_state', newBg);
+            
+            // Update button text
+            const fileName = newBg === 'path1' ? 'End Game.png' : 'End Game 2.png';
+            const btnText = document.getElementById('obs-endgame-bg-text');
+            if(btnText) {
+                btnText.textContent = `Đang dùng: ${fileName}`;
+            }
+            
+            console.log(`Đã đổi background endgame sang: ${fileName}`);
+        } catch(e) {
+            console.error('Lỗi đổi background endgame:', e);
+            alert(`Lỗi đổi background: ${e.message}\n\nHãy đảm bảo:\n- Đã kết nối OBS\n- Scene "Endgame" có source tên "background-endgame"`);
+        }
+    }
+    
+    function loadEndgameBackgroundState() {
+        const currentBg = localStorage.getItem('endgame_bg_state') || 'path1';
+        const fileName = currentBg === 'path1' ? 'End Game.png' : 'End Game 2.png';
+        const btnText = document.getElementById('obs-endgame-bg-text');
+        if(btnText) {
+            btnText.textContent = `Đang dùng: ${fileName}`;
+        }
+    }
+
+    // --- IMAGE SELECTION FOR CAMERA ---
+    function selectImageForCamera(team, lane) {
+        // Create hidden file input
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/jpeg,image/jpg,image/png,image/gif,image/webp';
+        input.style.display = 'none';
+        
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Try to get full path (works in Electron/file:// contexts)
+                let filePath = file.path || '';
+                
+                // Convert to file:// protocol if we have the path
+                if (filePath && !filePath.startsWith('file://') && !filePath.startsWith('http')) {
+                    // Handle Windows paths (C:\... -> file:///C:/...)
+                    filePath = filePath.replace(/\\/g, '/');
+                    if (filePath.match(/^[a-zA-Z]:/)) {
+                        filePath = 'file:///' + filePath;
+                    } else {
+                        filePath = 'file://' + filePath;
+                    }
+                    
+                    updateCameraLinkField(team, lane, filePath);
+                    showNotification(`✅ Đã chọn hình: ${file.name}`, 'success');
+                } else if (!filePath) {
+                    // In browser context, compress and convert to Data URL
+                    const fileSizeMB = file.size / (1024 * 1024);
+                    
+                    // Show loading notification
+                    if (fileSizeMB > 5) {
+                        showNotification(`⏳ Đang nén ảnh ${fileSizeMB.toFixed(1)}MB...`, 'info');
+                    } else {
+                        showNotification(`⏳ Đang tải ảnh...`, 'info');
+                    }
+                    
+                    try {
+                        // Compress image before saving
+                        const compressedDataUrl = await compressImage(file, 1920, 1080, 0.85);
+                        updateCameraLinkField(team, lane, compressedDataUrl);
+                        
+                        // Calculate compressed size
+                        const compressedSizeMB = (compressedDataUrl.length * 0.75) / (1024 * 1024); // rough estimate
+                        
+                        if (fileSizeMB > 5) {
+                            showNotification(`✅ Đã nén ${fileSizeMB.toFixed(1)}MB → ${compressedSizeMB.toFixed(1)}MB`, 'success');
+                        } else {
+                            showNotification(`✅ Đã tải hình: ${file.name}`, 'success');
+                        }
+                    } catch (error) {
+                        console.error('Error compressing image:', error);
+                        showNotification('❌ Lỗi xử lý hình ảnh!', 'error');
+                    }
+                } else {
+                    updateCameraLinkField(team, lane, filePath);
+                    showNotification(`✅ Đã chọn hình: ${file.name}`, 'success');
+                }
+            }
+            
+            // Remove input element
+            document.body.removeChild(input);
+        };
+        
+        input.oncancel = () => {
+            document.body.removeChild(input);
+        };
+        
+        document.body.appendChild(input);
+        input.click();
+    }
+    
+    // Compress image to reduce file size
+    function compressImage(file, maxWidth, maxHeight, quality) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const img = new Image();
+                
+                img.onload = () => {
+                    // Calculate new dimensions while maintaining aspect ratio
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth || height > maxHeight) {
+                        const aspectRatio = width / height;
+                        
+                        if (width > height) {
+                            width = maxWidth;
+                            height = width / aspectRatio;
+                        } else {
+                            height = maxHeight;
+                            width = height * aspectRatio;
+                        }
+                    }
+                    
+                    // Create canvas and draw resized image
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Convert to Data URL with compression
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve(compressedDataUrl);
+                };
+                
+                img.onerror = () => {
+                    reject(new Error('Failed to load image'));
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            reader.onerror = () => {
+                reject(new Error('Failed to read file'));
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    function updateCameraLinkField(team, lane, path) {
+        const linkInput = document.getElementById(`cameraLink_${team}_${lane}`);
+        if (linkInput) {
+            linkInput.value = path;
+            
+            // Save to STORE
+            if (!STORE.cameraData.cameras[team]) {
+                STORE.cameraData.cameras[team] = {};
+            }
+            STORE.cameraData.cameras[team][lane] = path;
+            
+            // Save to localStorage
+            localStorage.setItem('camera_data', JSON.stringify(STORE.cameraData));
+            
+            // Visual feedback
+            linkInput.style.borderColor = '#10b981';
+            setTimeout(() => {
+                linkInput.style.borderColor = '#444';
+            }, 1500);
+        }
+        
+        console.log(`Đã chọn hình cho ${team} - ${lane}: ${path.substring(0, 100)}${path.length > 100 ? '...' : ''}`);
+    }
+    
+    // Detect if a link is an image (local file or URL)
+    function isImageLink(link) {
+        if (!link || link.trim() === '') return false;
+        
+        const lowerLink = link.toLowerCase();
+        
+        // Check if it's a Data URL (data:image/...)
+        if (lowerLink.startsWith('data:image/')) return true;
+        
+        // Check if starts with file://
+        if (lowerLink.startsWith('file://')) return true;
+        
+        // Check if ends with image extensions
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+        if (imageExtensions.some(ext => lowerLink.endsWith(ext))) return true;
+        
+        // Check if it's a Cloudinary image URL
+        if (lowerLink.includes('cloudinary.com') && lowerLink.includes('/image/')) return true;
+        
+        // Check for common image hosting patterns
+        if (lowerLink.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i)) return true;
+        
+        return false;
+    }
+    
+    // --- AUTO-ROTATION LOGIC ---
+    function toggleAutoRotation() {
+        rotationState.enabled = !rotationState.enabled;
+        
+        if (rotationState.enabled) {
+            // Start rotation
+            startRotationInterval();
+            updateAutoRotationUI();
+            
+            // Immediately select the current lane
+            const currentLane = rotationState.lanes[rotationState.currentLaneIndex];
+            selectLane(currentLane);
+            
+            // Save state to localStorage
+            localStorage.setItem('camera_auto_rotation', 'true');
+            
+            console.log('Auto-rotation started');
+        } else {
+            // Stop rotation
+            stopRotationInterval();
+            updateAutoRotationUI();
+            
+            // Save state to localStorage
+            localStorage.setItem('camera_auto_rotation', 'false');
+            
+            console.log('Auto-rotation stopped');
+        }
+    }
+    
+    function startRotationInterval() {
+        // Clear any existing interval
+        if (rotationInterval) {
+            clearInterval(rotationInterval);
+        }
+        
+        // Reset time remaining
+        rotationState.timeRemaining = 15;
+        
+        // Set 1 second interval
+        rotationInterval = setInterval(() => {
+            rotationState.timeRemaining--;
+            
+            // Update UI
+            updateAutoRotationUI();
+            
+            // When time reaches 0, switch to next lane
+            if (rotationState.timeRemaining <= 0) {
+                // Move to next lane
+                rotationState.currentLaneIndex = (rotationState.currentLaneIndex + 1) % rotationState.lanes.length;
+                const nextLane = rotationState.lanes[rotationState.currentLaneIndex];
+                
+                // Select the lane (this will broadcast to both teams)
+                selectLane(nextLane);
+                
+                // Reset timer
+                rotationState.timeRemaining = 15;
+                
+                console.log(`Auto-rotated to: ${nextLane}`);
+            }
+        }, 1000);
+    }
+    
+    function stopRotationInterval() {
+        if (rotationInterval) {
+            clearInterval(rotationInterval);
+            rotationInterval = null;
+        }
+        rotationState.timeRemaining = 15;
+    }
+    
+    function updateAutoRotationUI() {
+        const toggleBtn = document.getElementById('autoRotationToggle');
+        const statusEl = document.getElementById('autoRotationStatus');
+        const textEl = document.getElementById('autoRotationText');
+        
+        if (rotationState.enabled) {
+            if (toggleBtn) {
+                toggleBtn.style.background = 'var(--success)';
+            }
+            if (textEl) {
+                textEl.textContent = 'Tắt Auto';
+            }
+            if (statusEl) {
+                const currentLane = rotationState.lanes[rotationState.currentLaneIndex];
+                const laneNames = {
+                    'Top': 'TOP',
+                    'Jung': 'RỪNG',
+                    'Mid': 'GIỮA',
+                    'ADC': 'XẠ THỦ',
+                    'Support': 'HỖ TRỢ'
+                };
+                statusEl.innerHTML = `<span style="color: var(--success); font-weight: 600;">${laneNames[currentLane] || currentLane}</span> - ${rotationState.timeRemaining}s`;
+            }
+        } else {
+            if (toggleBtn) {
+                toggleBtn.style.background = '#333';
+            }
+            if (textEl) {
+                textEl.textContent = 'Bật Auto';
+            }
+            if (statusEl) {
+                statusEl.textContent = 'Chưa bật';
+                statusEl.style.color = '#888';
+            }
+        }
+    }
+    
+    function loadAutoRotationState() {
+        const savedState = localStorage.getItem('camera_auto_rotation');
+        if (savedState === 'true') {
+            // Don't auto-start on load, just restore the toggle state
+            // User needs to manually enable it
+            rotationState.enabled = false;
+        }
+        updateAutoRotationUI();
+    }
+
+    // --- HIGHLIGHT FILE/FOLDER SELECTION ---
+    function handleFolderSelect(event) {
+        const files = event.target.files;
+        if(files && files.length > 0) {
+            // Get the path from the first file
+            const firstFile = files[0];
+            // Extract folder path (remove filename)
+            let folderPath = firstFile.path || firstFile.webkitRelativePath || '';
+            
+            // In browsers, we can't get the full path directly
+            // So we'll use webkitRelativePath and extract the folder
+            if(folderPath) {
+                const parts = folderPath.split('/');
+                if(parts.length > 1) {
+                    parts.pop(); // Remove filename
+                    folderPath = parts.join('/');
+                }
+                
+                const folderInput = document.getElementById('obs-highlight-folder');
+                if(folderInput) {
+                    folderInput.value = folderPath;
+                    localStorage.setItem('obs_highlight_folder', folderPath);
+                }
+            }
+        }
+    }
+    
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if(file) {
+            // Try to get full path (only works in some environments like Electron)
+            let filePath = file.path || file.webkitRelativePath || file.name;
+            
+            const pathInput = document.getElementById('obs-highlight-path');
+            if(pathInput) {
+                pathInput.value = filePath;
+            }
+        }
+    }
+
     // Expose API
     return {
         connectOBS,
@@ -1265,10 +1882,56 @@ const obsManager = (function() {
         loadCameraData,
         updatePlayerNameFromInput,
         selectLane,
-        swapTeamsCameraData
+        swapTeamsCameraData,
+        selectImageForCamera,
+        toggleAutoRotation,
+        loadAutoRotationState,
+        // Endgame background swap
+        swapEndgameBackground,
+        loadEndgameBackgroundState,
+        // Highlight file/folder selection
+        handleFolderSelect,
+        handleFileSelect
     };
 })();
 
 // Expose to window for inline handlers
 window.obsManagerAPI = obsManager;
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Load endgame background state
+    obsManager.loadEndgameBackgroundState();
+    
+    // Load auto-rotation state
+    obsManager.loadAutoRotationState();
+    
+    // Load highlight source name from localStorage
+    const savedSourceName = localStorage.getItem('obs_highlight_source_name');
+    const sourceNameInput = document.getElementById('obs-highlight-source-name');
+    if(sourceNameInput && savedSourceName) {
+        sourceNameInput.value = savedSourceName;
+    }
+    
+    // Save highlight source name when it changes
+    if(sourceNameInput) {
+        sourceNameInput.addEventListener('change', (e) => {
+            localStorage.setItem('obs_highlight_source_name', e.target.value);
+        });
+    }
+    
+    // Load highlight folder from localStorage
+    const savedFolder = localStorage.getItem('obs_highlight_folder');
+    const folderInput = document.getElementById('obs-highlight-folder');
+    if(folderInput && savedFolder) {
+        folderInput.value = savedFolder;
+    }
+    
+    // Save highlight folder when it changes
+    if(folderInput) {
+        folderInput.addEventListener('change', (e) => {
+            localStorage.setItem('obs_highlight_folder', e.target.value);
+        });
+    }
+});
 

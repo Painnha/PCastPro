@@ -5,6 +5,8 @@ class TikTokLiveService {
         this.connection = null;
         this.isConnected = false;
         this.username = '';
+        this.sessionId = null;
+        this.sessionIdSs = null;
         this.commentCallbacks = [];
         this.eventCallbacks = {
             connected: [],
@@ -17,20 +19,35 @@ class TikTokLiveService {
     /**
      * Kết nối đến TikTok Live stream
      * @param {string} username - TikTok username hoặc uniqueId
+     * @param {string} sessionId - TikTok sessionId cookie (optional)
+     * @param {string} sessionIdSs - TikTok sessionId_ss cookie (optional, for v2.x)
      */
-    async connect(username) {
+    async connect(username, sessionId = null, sessionIdSs = null) {
         if (this.isConnected) {
             throw new Error('Already connected to a live stream');
         }
 
         try {
             this.username = username;
-            this.connection = new WebcastPushConnection(username, {
-                processInitialData: true,
-                enableExtendedGiftInfo: true,
-                enableWebsocketUpgrade: true,
-                requestPollingIntervalMs: 1000
-            });
+            this.sessionId = sessionId;
+            this.sessionIdSs = sessionIdSs;
+            
+            // Simple configuration - theo pattern của code test thành công
+            const options = {
+                processInitialData: true,           // ✅ Bật để nhận initial data
+                enableExtendedGiftInfo: true,       // ✅ Bật để có thông tin gift đầy đủ
+                fetchRoomInfoOnConnect: true        // ✅ Bật để fetch room info
+            };
+            
+            // Add sessionId if provided
+            if (sessionId && sessionId.trim().length > 0) {
+                options.sessionId = sessionId.trim();
+                console.log('✅ Using provided sessionId');
+            } else {
+                console.log('🌐 Connecting anonymously');
+            }
+            
+            this.connection = new WebcastPushConnection(username, options);
 
             // Setup event listeners
             this.setupEventListeners();
@@ -40,23 +57,42 @@ class TikTokLiveService {
             
             this.isConnected = true;
             
+            // Safely extract room info (có thể undefined)
+            const roomOwner = state?.roomInfo?.owner?.uniqueId || username;
+            const roomId = state?.roomInfo?.roomId || 'unknown';
+            const viewerCount = state?.roomInfo?.viewerCount || 0;
+            
+            console.log(`✅ Connected to @${roomOwner}`);
+            console.log(`📊 Room ID: ${roomId}`);
+            console.log(`👥 Viewers: ${viewerCount}`);
+            
             this.triggerEvent('connected', { 
-                username: state.roomInfo.owner.uniqueId,
-                viewerCount: state.roomInfo.viewerCount || 0
+                username: roomOwner,
+                viewerCount: viewerCount
             });
             
             return {
                 success: true,
-                username: state.roomInfo.owner.uniqueId,
-                roomId: state.roomInfo.roomId,
-                viewerCount: state.roomInfo.viewerCount
+                username: roomOwner,
+                roomId: roomId,
+                viewerCount: viewerCount
             };
         } catch (error) {
+            // Cleanup nếu có lỗi
             this.isConnected = false;
+            if (this.connection) {
+                try {
+                    this.connection.disconnect();
+                } catch (e) {
+                    // Ignore disconnect errors
+                }
+                this.connection = null;
+            }
             
             this.triggerEvent('error', { error: error.message });
             
-            throw new Error(`Failed to connect: ${error.message}`);
+            console.error('❌ Connection error:', error.message);
+            throw new Error(`Không thể kết nối TikTok Live: ${error.message}`);
         }
     }
 
@@ -73,9 +109,10 @@ class TikTokLiveService {
             this.isConnected = false;
             this.username = '';
             
+            console.log('🔌 Disconnected from TikTok Live');
             this.triggerEvent('disconnected', {});
         } catch (error) {
-            // Disconnect error
+            console.error('Disconnect error:', error);
         }
     }
 
@@ -96,75 +133,111 @@ class TikTokLiveService {
                 userId: data.userId
             };
             
+            // console.log(`💬 ${data.uniqueId}: ${data.comment}`);
+            
             // Trigger all registered callbacks
             this.commentCallbacks.forEach(callback => {
                 try {
                     callback(comment);
                 } catch (error) {
-                    // Callback error
+                    console.error('Comment callback error:', error);
                 }
             });
         });
 
-        // Gifts
+        // Gifts - xử lý streak theo documentation
         this.connection.on('gift', (data) => {
-            // Format gift as comment for display
-            const giftComment = {
-                username: data.uniqueId,
-                nickname: data.nickname,
-                text: `🎁 Tặng ${data.giftName} x${data.repeatCount || 1}`,
-                timestamp: new Date(),
-                profilePictureUrl: data.profilePictureUrl,
-                userId: data.userId,
-                isGift: true,
-                giftName: data.giftName,
-                giftCount: data.repeatCount || 1,
-                giftId: data.giftId
-            };
+            // Chỉ xử lý khi:
+            // - Gift type 1 (có streak) và repeatEnd = true (streak kết thúc)
+            // - Gift type khác 1 (không có streak) thì xử lý luôn
+            const shouldProcess = (data.giftType === 1 && data.repeatEnd) || data.giftType !== 1;
             
-            // Trigger comment callbacks to display gift as comment
-            this.commentCallbacks.forEach(callback => {
-                try {
-                    callback(giftComment);
-                } catch (error) {
-                    // Callback error
-                }
-            });
+            if (shouldProcess) {
+                const giftComment = {
+                    username: data.uniqueId,
+                    nickname: data.nickname,
+                    text: `🎁 Tặng ${data.giftName} x${data.repeatCount || 1}`,
+                    timestamp: new Date(),
+                    profilePictureUrl: data.profilePictureUrl,
+                    userId: data.userId,
+                    isGift: true,
+                    giftName: data.giftName,
+                    giftCount: data.repeatCount || 1,
+                    giftId: data.giftId
+                };
+                
+                // console.log(`🎁 ${data.uniqueId} → ${data.giftName} x${data.repeatCount || 1}`);
+                
+                // Trigger comment callbacks để hiển thị gift như comment
+                this.commentCallbacks.forEach(callback => {
+                    try {
+                        callback(giftComment);
+                    } catch (error) {
+                        console.error('Gift callback error:', error);
+                    }
+                });
+            }
+        });
+
+        // Member joined
+        this.connection.on('member', (data) => {
+            // console.log(`👋 ${data.uniqueId} joined`);
+        });
+
+        // Likes
+        this.connection.on('like', (data) => {
+            // console.log(`❤️ ${data.uniqueId} sent ${data.likeCount} likes`);
         });
 
         // Shares
         this.connection.on('share', (data) => {
-            // Share event
+            // console.log(`📤 ${data.uniqueId} shared the stream`);
         });
 
         // Follows
         this.connection.on('social', (data) => {
-            // Follow event
+            // console.log(`🔔 ${data.uniqueId} followed`);
         });
 
-        // Room stats update
+        // Room stats update (viewer count)
         this.connection.on('roomUser', (data) => {
-            // Broadcast viewer count
             const viewerData = {
                 viewerCount: data.viewerCount || 0
             };
             
+            // console.log(`📊 Viewers: ${data.viewerCount}`);
             this.triggerEvent('viewers', viewerData);
         });
 
         // Stream ended
         this.connection.on('streamEnd', () => {
+            console.log('🔚 TikTok Live stream ended');
             this.isConnected = false;
             this.triggerEvent('disconnected', { reason: 'Stream ended' });
         });
 
         // Connection errors
         this.connection.on('error', (error) => {
-            this.triggerEvent('error', { error: error.message });
+            const errorMsg = error.message || error.info || JSON.stringify(error);
+            
+            // Ignore non-critical errors
+            if (errorMsg.includes('Missing cursor')) {
+                return;
+            }
+            
+            // Ignore fallback messages (không phải lỗi thực sự)
+            if (errorMsg.includes('falling back to API source')) {
+                return;
+            }
+            
+            // Chỉ log các lỗi thực sự quan trọng
+            console.error('❌ TikTok error:', errorMsg);
+            this.triggerEvent('error', { error: errorMsg });
         });
 
         // Disconnected
         this.connection.on('disconnected', () => {
+            console.log('🔌 TikTok Live disconnected');
             this.isConnected = false;
             this.triggerEvent('disconnected', {});
         });
@@ -182,7 +255,7 @@ class TikTokLiveService {
 
     /**
      * Đăng ký callback cho events
-     * @param {string} event - 'connected', 'disconnected', 'error'
+     * @param {string} event - 'connected', 'disconnected', 'error', 'viewers'
      * @param {Function} callback 
      */
     on(event, callback) {
@@ -200,7 +273,7 @@ class TikTokLiveService {
                 try {
                     callback(data);
                 } catch (error) {
-                    // Event callback error
+                    console.error(`Event callback error (${event}):`, error);
                 }
             });
         }
@@ -224,7 +297,8 @@ class TikTokLiveService {
         this.eventCallbacks = {
             connected: [],
             disconnected: [],
-            error: []
+            error: [],
+            viewers: []
         };
     }
 }
@@ -233,4 +307,3 @@ class TikTokLiveService {
 const tiktokLiveService = new TikTokLiveService();
 
 module.exports = tiktokLiveService;
-
