@@ -7,6 +7,7 @@ const obsManager = (function() {
         pinned: [],   // ['sourceName1', 'sourceName2']
         links: {},    // { 'groupName': ['sourceA', 'sourceB'] }
         contents: {}, // { 'sourceName': 'lastKnownContent/url/path' }
+        swapPairs: [], // [{ sourceA: 'name1', sourceB: 'name2' }]
         cameraData: {
             players: {
                 A: { Top: '', Jung: '', Mid: '', ADC: '', Support: '' },
@@ -23,6 +24,12 @@ const obsManager = (function() {
     let CACHED_SCENES = [];
     let currentGroupName = '';
     
+    // Swap pair dialog state
+    let swapPairDialogState = {
+        selectedSourceA: null,
+        selectedSourceB: null
+    };
+
     // Auto-rotation state
     let rotationInterval = null;
     let rotationState = {
@@ -40,11 +47,10 @@ const obsManager = (function() {
             await obs.connect(`ws://${document.getElementById('obsIp').value}:${document.getElementById('obsPort').value}`, document.getElementById('obsPwd').value);
             btn.innerText = "Connected";
             btn.style.background = "#10b981";
-            
+
             await loadStore();
             loadCameraData();
             scanSources();
-            renderLinkGroups();
             obs.on('CurrentProgramSceneChanged', (data) => {
                 highlightActiveScene(data.sceneName);
             });
@@ -62,51 +68,198 @@ const obsManager = (function() {
             const resp = await obs.call('GetSceneList');
             CACHED_SCENES = resp.scenes.reverse(); 
             
-            const container = document.getElementById('obs-setup-container');
             const sceneGrid = document.getElementById('obs-scene-grid');
             
-            container.innerHTML = '';
-            sceneGrid.innerHTML = '';
+            if (sceneGrid) {
+                sceneGrid.innerHTML = '';
 
-            // Render Dashboard Buttons
-            CACHED_SCENES.forEach(scene => {
-                const btn = document.createElement('button');
-                btn.className = 'scene-btn';
-                btn.id = `obs-btn-scene-${scene.sceneName}`;
-                btn.innerText = scene.sceneName;
-                btn.onclick = () => obs.call('SetCurrentProgramScene', { sceneName: scene.sceneName });
-                sceneGrid.appendChild(btn);
-
-                // Render Setup Tree
-                const sceneBlock = document.createElement('div');
-                sceneBlock.className = 'scene-block';
-                
-                const header = document.createElement('div');
-                header.className = 'scene-header';
-                header.innerHTML = `<span>${scene.sceneName}</span> <i class="fas fa-chevron-down"></i>`;
-                
-                // Logic mở/đóng và load items
-                header.onclick = async () => {
-                    const content = sceneBlock.querySelector('.scene-items');
-                    if(content.innerHTML === '') {
-                        await renderSceneItems(scene.sceneName, content);
-                    }
-                    content.classList.toggle('open');
-                };
-
-                const itemsDiv = document.createElement('div');
-                itemsDiv.className = 'scene-items';
-                
-                sceneBlock.appendChild(header);
-                sceneBlock.appendChild(itemsDiv);
-                container.appendChild(sceneBlock);
-            });
+                // Render Dashboard Buttons
+                CACHED_SCENES.forEach(scene => {
+                    const btn = document.createElement('button');
+                    btn.className = 'scene-btn';
+                    btn.id = `obs-btn-scene-${scene.sceneName}`;
+                    btn.innerText = scene.sceneName;
+                    btn.onclick = () => obs.call('SetCurrentProgramScene', { sceneName: scene.sceneName });
+                    sceneGrid.appendChild(btn);
+                });
+            }
 
             renderDashboard(); // Refresh UI Dashboard
             renderLinkGroups(); // Refresh Link Groups
+            renderScenesViewer(resp.currentProgramSceneName); // Render Scenes Viewer
         } catch (e) {
             alert("Lỗi quét Scene: " + e.message);
         }
+    }
+
+    // --- SCENES/SOURCES VIEWER (Left Panel) ---
+    async function renderScenesViewer(currentProgramSceneName) {
+        const scenesList = document.getElementById('obs-viewer-scenes-list');
+        const sourcesList = document.getElementById('obs-viewer-sources-list');
+        
+        if (!CACHED_SCENES || CACHED_SCENES.length === 0) {
+            scenesList.innerHTML = '<div style="color: #666; padding: 10px;">Chưa quét. Bấm "Quét Source từ OBS"</div>';
+            sourcesList.innerHTML = '';
+            return;
+        }
+        
+        // Determine which scene to show as active
+        const activeScene = currentProgramSceneName || CACHED_SCENES[0]?.sceneName;
+        
+        // Render scenes
+        scenesList.innerHTML = '';
+        CACHED_SCENES.forEach(scene => {
+            const sceneEl = document.createElement('div');
+            sceneEl.className = 'viewer-scene-item' + (scene.sceneName === activeScene ? ' active' : '');
+            sceneEl.innerHTML = `<i class="fas fa-image"></i> <span>${scene.sceneName}</span>`;
+            sceneEl.onclick = () => selectViewerScene(scene.sceneName);
+            scenesList.appendChild(sceneEl);
+        });
+        
+        // Render sources for active scene
+        await renderViewerSources(activeScene);
+    }
+
+    async function renderViewerSources(sceneName) {
+        const sourcesList = document.getElementById('obs-viewer-sources-list');
+        
+        if (!sceneName) {
+            sourcesList.innerHTML = '<div style="color: #666; padding: 10px;">Chọn một scene để xem sources</div>';
+            return;
+        }
+        
+        sourcesList.innerHTML = '<div style="color: #888; padding: 10px;">Đang tải...</div>';
+        
+        try {
+            const items = await getItemsRecursively(sceneName);
+            
+            if (!items || items.length === 0) {
+                sourcesList.innerHTML = '<div style="color: #666; padding: 10px;">Scene này chưa có source</div>';
+                return;
+            }
+            
+            sourcesList.innerHTML = '';
+            
+            // Render items với nội dung và tương tác đầy đủ
+            for (let item of items) {
+                // Chỉ hiển thị Text, Browser, Media, Image
+                if(['input', 'scene'].includes(item.sourceType) || item.inputKind) { 
+                    const row = document.createElement('div');
+                    row.className = 'source-row';
+                    
+                    const isPinned = STORE.pinned.includes(item.sourceName);
+                    const linkGroup = getLinkGroup(item.sourceName);
+                    const isGroupItem = item.groupName ? `<span style='color:#e67e22; font-size: 0.65rem;'>[Group: ${item.groupName}]</span>` : '';
+
+                    // Lấy nội dung đầy đủ của source
+                    let sourceContent = '';
+                    let contentType = '';
+                    try {
+                        const inputSettings = await obs.call('GetInputSettings', { inputName: item.sourceName });
+                        const settings = inputSettings.inputSettings || {};
+                        
+                        if (settings.text) {
+                            sourceContent = String(settings.text || '');
+                            contentType = 'text';
+                        } else if (settings.url) {
+                            sourceContent = String(settings.url || '');
+                            contentType = 'url';
+                        } else if (settings.local_file) {
+                            sourceContent = String(settings.local_file || '');
+                            contentType = 'local_file';
+                        } else if (settings.file) {
+                            sourceContent = String(settings.file || '');
+                            contentType = 'file';
+                        }
+                    } catch(e) {
+                        sourceContent = '';
+                        contentType = '';
+                    }
+
+                    // Lưu lại nội dung vào STORE
+                    try {
+                        if (!STORE.contents) STORE.contents = {};
+                        if (sourceContent) {
+                            STORE.contents[item.sourceName] = sourceContent;
+                        }
+                    } catch (eStore) {
+                        console.warn('Không thể lưu contents vào STORE:', eStore);
+                    }
+
+                    // Escape HTML
+                    const escapedContent = sourceContent.replace(/"/g, '&quot;').replace(/'/g, "&#39;");
+                    const escapedTitle = sourceContent.replace(/"/g, '&quot;').replace(/'/g, "&#39;");
+                    const escapedSourceNameAttr = item.sourceName.replace(/"/g, '&quot;');
+                    const escapedContentTypeAttr = contentType.replace(/"/g, '&quot;');
+
+                    row.innerHTML = `
+                        <div class="viewer-source-name-row">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="source-name">${item.sourceName}</span>
+                                <span class="obs-badge">${item.inputKind || 'Source'}</span>
+                                ${isGroupItem}
+                                ${linkGroup ? `<span style="font-size: 0.7rem; color: var(--accent);"><i class="fas fa-link"></i> ${linkGroup}</span>` : ''}
+                            </div>
+                            <div style="display: flex; gap: 0.3rem;">
+                                <button class="obs-icon-btn" 
+                                    onclick="obsManagerAPI.updateSourceFromSetupField(this.closest('.source-row').querySelector('.source-content-input'))" 
+                                    title="Lưu">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                                <button class="obs-icon-btn ${isPinned?'active':''}" onclick="obsManagerAPI.togglePin('${item.sourceName.replace(/'/g, "\\'")}')" title="Ghim">
+                                    <i class="fas fa-thumbtack"></i>
+                                </button>
+                                <button class="obs-icon-btn ${linkGroup?'linked':''}" onclick="obsManagerAPI.setLink('${item.sourceName.replace(/'/g, "\\'")}')" title="Liên kết">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button class="obs-icon-btn" onclick="obsManagerAPI.toggleVis('${sceneName.replace(/'/g, "\\'")}', ${item.sceneItemId})" title="Ẩn/Hiện">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                ${ (item.inputKind === 'browser_source') ? 
+                                    `<button class="obs-icon-btn" onclick="obsManagerAPI.reloadBrowser('${item.sourceName.replace(/'/g, "\\'")}')" title="Reload Browser">
+                                        <i class="fas fa-sync"></i>
+                                    </button>` : '' 
+                                }
+                            </div>
+                        </div>
+
+                        <div class="viewer-source-input-row">
+                            <input type="text" 
+                                class="source-content-input" 
+                                value="${escapedContent}" 
+                                placeholder="Nội dung/URL/Đường dẫn..."
+                                data-source-name="${escapedSourceNameAttr}"
+                                data-content-type="${escapedContentTypeAttr}"
+                                onchange="obsManagerAPI.updateSourceFromSetupField(this)"
+                                onkeydown="if(event.key === 'Enter') { obsManagerAPI.updateSourceFromSetupField(this); this.blur(); }"
+                                title="${escapedTitle || 'Không có nội dung'}"
+                            >
+                        </div>
+                    `;
+                    sourcesList.appendChild(row);
+                }
+            }
+            
+            if (sourcesList.children.length === 0) {
+                sourcesList.innerHTML = '<div style="color: #666; padding: 10px;">Không có source hợp lệ</div>';
+            }
+        } catch (e) {
+            console.error('Error loading sources:', e);
+            sourcesList.innerHTML = '<div style="color: #ef4444; padding: 10px;">Lỗi tải sources</div>';
+        }
+    }
+
+    function selectViewerScene(sceneName) {
+        // Update active scene in viewer
+        document.querySelectorAll('.viewer-scene-item').forEach(el => {
+            el.classList.remove('active');
+            if (el.textContent.trim() === sceneName) {
+                el.classList.add('active');
+            }
+        });
+        
+        // Load sources for selected scene
+        renderViewerSources(sceneName);
     }
 
     async function renderSceneItems(sceneName, container) {
@@ -351,6 +504,222 @@ const obsManager = (function() {
                 renderDashboard();
             }
         }
+    }
+
+    // --- SWAP PAIRS MANAGEMENT ---
+    function renderSwapPairs() {
+        const container = document.getElementById('obs-swap-pairs-container');
+        if (!container) return;
+        
+        if (!STORE.swapPairs || STORE.swapPairs.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Chưa có cặp swap nào. Click "Thêm Cặp Swap" để tạo.</div>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        STORE.swapPairs.forEach((pair, index) => {
+            const pairEl = document.createElement('div');
+            pairEl.className = 'swap-pair-item';
+            pairEl.innerHTML = `
+                <div class="swap-pair-sources">
+                    <span style="color: #3b82f6;">${pair.sourceA}</span>
+                    <span class="swap-pair-arrow">⇄</span>
+                    <span style="color: #ef4444;">${pair.sourceB}</span>
+                </div>
+                <button class="obs-icon-btn" onclick="obsManagerAPI.removeSwapPair(${index})" title="Xóa">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(pairEl);
+        });
+    }
+
+    function openSwapPairDialog() {
+        swapPairDialogState = { selectedSourceA: null, selectedSourceB: null };
+        document.getElementById('obsSwapPairDialogOverlay').classList.add('active');
+        renderSwapPairSourceLists();
+    }
+
+    function closeSwapPairDialog() {
+        document.getElementById('obsSwapPairDialogOverlay').classList.remove('active');
+        swapPairDialogState = { selectedSourceA: null, selectedSourceB: null };
+    }
+
+    async function renderSwapPairSourceLists() {
+        const allSources = await getAllAvailableSources();
+        
+        renderSwapPairColumn('swapPairTeamA', allSources, 'A');
+        renderSwapPairColumn('swapPairTeamB', allSources, 'B');
+    }
+
+    function renderSwapPairColumn(containerId, sources, team) {
+        const container = document.getElementById(containerId);
+        const listEl = document.createElement('div');
+        listEl.className = 'swap-source-list';
+        
+        sources.forEach(source => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'swap-source-item';
+            itemEl.textContent = source;
+            itemEl.onclick = () => selectSwapSource(team, source, itemEl);
+            listEl.appendChild(itemEl);
+        });
+        
+        container.innerHTML = '';
+        container.appendChild(listEl);
+    }
+
+    function selectSwapSource(team, sourceName, element) {
+        const container = element.parentElement;
+        container.querySelectorAll('.swap-source-item').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        
+        if (team === 'A') {
+            swapPairDialogState.selectedSourceA = sourceName;
+        } else {
+            swapPairDialogState.selectedSourceB = sourceName;
+        }
+    }
+
+    async function getAllAvailableSources() {
+        const sources = [];
+        for (const scene of CACHED_SCENES) {
+            try {
+                const resp = await obs.call('GetSceneItemList', { sceneName: scene.sceneName });
+                resp.sceneItems.forEach(item => {
+                    if (item.sourceName && !sources.includes(item.sourceName)) {
+                        sources.push(item.sourceName);
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading sources:', e);
+            }
+        }
+        return sources.sort();
+    }
+
+    function saveSwapPair() {
+        const { selectedSourceA, selectedSourceB } = swapPairDialogState;
+        
+        if (!selectedSourceA || !selectedSourceB) {
+            alert('Vui lòng chọn cả 2 source!');
+            return;
+        }
+        
+        if (selectedSourceA === selectedSourceB) {
+            alert('Không thể swap một source với chính nó!');
+            return;
+        }
+        
+        // Check for duplicates
+        const isDuplicate = STORE.swapPairs.some(pair => 
+            pair.sourceA === selectedSourceA || pair.sourceB === selectedSourceA ||
+            pair.sourceA === selectedSourceB || pair.sourceB === selectedSourceB
+        );
+        
+        if (isDuplicate) {
+            alert('Một trong hai source này đã nằm trong cặp swap khác!');
+            return;
+        }
+        
+        if (!STORE.swapPairs) STORE.swapPairs = [];
+        STORE.swapPairs.push({ sourceA: selectedSourceA, sourceB: selectedSourceB });
+        
+        saveStore();
+        renderSwapPairs();
+        closeSwapPairDialog();
+    }
+
+    function removeSwapPair(index) {
+        if (confirm('Bạn có chắc muốn xóa cặp swap này?')) {
+            STORE.swapPairs.splice(index, 1);
+            saveStore();
+            renderSwapPairs();
+        }
+    }
+
+    // --- SWAP EXECUTION ---
+    async function executeSwapPairs() {
+        if (!STORE.swapPairs || STORE.swapPairs.length === 0) {
+            return; // No swap pairs to execute
+        }
+        
+        try {
+            for (const pair of STORE.swapPairs) {
+                await swapSourceContents(pair.sourceA, pair.sourceB);
+            }
+            console.log('Đã swap toàn bộ swap pairs');
+        } catch (e) {
+            console.error('Lỗi khi swap sources:', e);
+            alert('Có lỗi xảy ra khi swap sources: ' + e.message);
+        }
+    }
+
+    async function swapSourceContents(sourceNameA, sourceNameB) {
+        // Get link groups for both sources
+        const groupA = getLinkGroup(sourceNameA);
+        const groupB = getLinkGroup(sourceNameB);
+        
+        // Determine targets for each source
+        const targetsA = groupA && STORE.links[groupA] ? STORE.links[groupA] : [sourceNameA];
+        const targetsB = groupB && STORE.links[groupB] ? STORE.links[groupB] : [sourceNameB];
+        
+        // Get current content of both sources
+        const contentA = STORE.contents[sourceNameA] || '';
+        const contentB = STORE.contents[sourceNameB] || '';
+        
+        // Get source settings to determine content type
+        let settingsA, settingsB;
+        try {
+            settingsA = await obs.call('GetInputSettings', { inputName: sourceNameA });
+            settingsB = await obs.call('GetInputSettings', { inputName: sourceNameB });
+        } catch (e) {
+            console.warn('Could not get source settings:', e);
+            return;
+        }
+        
+        // Prepare input settings for swap
+        const inputSettingsA = prepareInputSettings(settingsB.inputSettings, contentB);
+        const inputSettingsB = prepareInputSettings(settingsA.inputSettings, contentA);
+        
+        // Update all targets in group A with content from B
+        for (const target of targetsA) {
+            await obs.call('SetInputSettings', {
+                inputName: target,
+                inputSettings: inputSettingsA
+            });
+            STORE.contents[target] = contentB;
+        }
+        
+        // Update all targets in group B with content from A
+        for (const target of targetsB) {
+            await obs.call('SetInputSettings', {
+                inputName: target,
+                inputSettings: inputSettingsB
+            });
+            STORE.contents[target] = contentA;
+        }
+        
+        saveStore();
+    }
+
+    function prepareInputSettings(settings, content) {
+        const inputSettings = {};
+        
+        if (settings.text !== undefined) inputSettings.text = content;
+        if (settings.url !== undefined) inputSettings.url = content;
+        if (settings.local_file !== undefined) inputSettings.local_file = content;
+        if (settings.file !== undefined) inputSettings.file = content;
+        
+        // If no recognized content field, try all
+        if (Object.keys(inputSettings).length === 0) {
+            inputSettings.text = content;
+            inputSettings.url = content;
+            inputSettings.local_file = content;
+            inputSettings.file = content;
+        }
+        
+        return inputSettings;
     }
 
     function openSourcePickerForGroup(groupName) {
@@ -907,7 +1276,8 @@ const obsManager = (function() {
                 body: JSON.stringify({
                     pinned: STORE.pinned || [],
                     links: STORE.links || {},
-                    contents: STORE.contents || {}
+                    contents: STORE.contents || {},
+                    swapPairs: STORE.swapPairs || []
                 })
             });
 
@@ -927,7 +1297,7 @@ const obsManager = (function() {
         }
     }
 
-    async function loadStore() { 
+    async function loadStore() {
         try {
             const token = localStorage.getItem('authToken');
             if (!token) {
@@ -958,6 +1328,7 @@ const obsManager = (function() {
                             pinned: result.data.pinned || [],
                             links: result.data.links || {},
                             contents: result.data.contents || {},
+                            swapPairs: result.data.swapPairs || [],
                             cameraData: {
                                 players: {
                                     A: { Top: '', Jung: '', Mid: '', ADC: '', Support: '' },
@@ -972,6 +1343,8 @@ const obsManager = (function() {
                         console.log('Đã load cấu hình OBS từ database');
                         // Also save to localStorage as backup
                         localStorage.setItem('obs_tool_store', JSON.stringify(STORE));
+                        renderLinkGroups();
+                        renderSwapPairs();
                         return;
                     }
                 } else {
@@ -994,6 +1367,7 @@ const obsManager = (function() {
         if (!STORE.pinned) STORE.pinned = [];
         if (!STORE.links) STORE.links = {};
         if (!STORE.contents) STORE.contents = {};
+        if (!STORE.swapPairs) STORE.swapPairs = [];
         if (!STORE.cameraData) {
             STORE.cameraData = {
                 players: {
@@ -1006,6 +1380,8 @@ const obsManager = (function() {
                 }
             };
         }
+        
+        renderSwapPairs();
     }
 
     function stopCamera() {
@@ -1891,7 +2267,13 @@ const obsManager = (function() {
         loadEndgameBackgroundState,
         // Highlight file/folder selection
         handleFolderSelect,
-        handleFileSelect
+        handleFileSelect,
+        // Swap pairs functions
+        openSwapPairDialog,
+        closeSwapPairDialog,
+        saveSwapPair,
+        removeSwapPair,
+        executeSwapPairs
     };
 })();
 

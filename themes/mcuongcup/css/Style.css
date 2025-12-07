@@ -134,7 +134,7 @@ body {
     position: relative;
     overflow: hidden;
     z-index: 2;
-    border-color: white;
+    border: 1px solid white;
 }
 
 .active.ban::before {

@@ -517,6 +517,15 @@ const handleSwapTeamInfo = async () => {
     }
   }
 
+  // Execute OBS swap pairs
+  if (window.obsManagerAPI && typeof window.obsManagerAPI.executeSwapPairs === "function") {
+    try {
+      await window.obsManagerAPI.executeSwapPairs();
+    } catch (e) {
+      console.warn("Lỗi khi swap OBS sources:", e);
+    }
+  }
+
   // Show success message
   showTeamInfoMessage("Đã đổi thông tin đội!", "success");
 };

@@ -20,6 +20,13 @@ const obsConfigSchema = new mongoose.Schema({
         type: Map,
         of: String,
         default: {}
+    },
+    swapPairs: {
+        type: [{
+            sourceA: String,
+            sourceB: String
+        }],
+        default: []
     }
 }, {
     timestamps: true

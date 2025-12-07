@@ -747,24 +747,29 @@ app.get('/api/obs/config', authenticateToken, async (req, res) => {
     const { userId } = req.user;
     
     try {
+        // Load the user's single config
         let obsConfig = await OBSConfig.findOne({ userId });
         
-        // If no config exists, create default one
+        // If no config exists, return empty config
         if (!obsConfig) {
-            obsConfig = new OBSConfig({
-                userId,
-                pinned: [],
-                links: {},
-                contents: {}
+            return res.status(200).send({
+                success: true,
+                data: {
+                    pinned: [],
+                    links: {},
+                    contents: {},
+                    swapPairs: []
+                }
             });
-            await obsConfig.save();
         }
         
         // Convert Map to Object for JSON response
         const response = {
+            _id: obsConfig._id,
             pinned: obsConfig.pinned,
             links: Object.fromEntries(obsConfig.links),
-            contents: Object.fromEntries(obsConfig.contents)
+            contents: Object.fromEntries(obsConfig.contents),
+            swapPairs: obsConfig.swapPairs || []
         };
         
         res.status(200).send({
@@ -783,32 +788,45 @@ app.get('/api/obs/config', authenticateToken, async (req, res) => {
 // API: Save OBS Config
 app.post('/api/obs/config', authenticateToken, async (req, res) => {
     const { userId } = req.user;
-    const { pinned, links, contents } = req.body;
+    const { pinned, links, contents, swapPairs } = req.body;
     
     try {
-        // Upsert: update if exists, create if not
-        const obsConfig = await OBSConfig.findOneAndUpdate(
-            { userId },
-            {
+        // Try to find existing config
+        let obsConfig = await OBSConfig.findOne({ userId });
+        
+        if (obsConfig) {
+            // Update existing config
+            obsConfig = await OBSConfig.findOneAndUpdate(
+                { userId },
+                {
+                    pinned: pinned || [],
+                    links: links || {},
+                    contents: contents || {},
+                    swapPairs: swapPairs || []
+                },
+                { new: true }
+            );
+        } else {
+            // Create new config if it doesn't exist
+            obsConfig = new OBSConfig({
                 userId,
                 pinned: pinned || [],
                 links: links || {},
-                contents: contents || {}
-            },
-            { 
-                upsert: true, 
-                new: true,
-                setDefaultsOnInsert: true
-            }
-        );
+                contents: contents || {},
+                swapPairs: swapPairs || []
+            });
+            await obsConfig.save();
+        }
         
         res.status(200).send({
             success: true,
             message: 'Cấu hình OBS đã được lưu thành công',
             data: {
+                _id: obsConfig._id,
                 pinned: obsConfig.pinned,
                 links: Object.fromEntries(obsConfig.links),
-                contents: Object.fromEntries(obsConfig.contents)
+                contents: Object.fromEntries(obsConfig.contents),
+                swapPairs: obsConfig.swapPairs || []
             }
         });
     } catch (error) {
